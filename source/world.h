@@ -54,15 +54,21 @@ void World::generate(){
   perlin.SetFrequency(1.0);
   perlin.SetPersistence(0.5);
 
+
   double min, max = 0.0;
   for(int i = 0; i < dim.x*dim.y; i++){
-    sediment[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
-    if(sediment[i] > max) max = sediment[i];
-    if(sediment[i] < min) min = sediment[i];
+    tmp[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
+    if(tmp[i] > max) max = tmp[i];
+    if(tmp[i] < min) min = tmp[i];
   }
   //Normalize
   for(int i = 0; i < dim.x*dim.y; i++){
-    sediment[i] = 0.1;//0.3*(sediment[i] - min)/(max - min);
+    float x = i/dim.y;
+    float y = i%dim.y;
+
+    float p = 1.2-2*(abs(x-dim.x/2)/dim.x+abs(y-dim.y/2)/dim.y);
+    sediment[i] += (tmp[i] - min)/(max - min);
+
   }
 
   min = max = 0.0;
@@ -73,8 +79,21 @@ void World::generate(){
   }
   //Normalize
   for(int i = 0; i < dim.x*dim.y; i++){
-    heightmap[i] = 0.9*(heightmap[i] - min)/(max - min);
+    float x = i/dim.y;
+    float y = i%dim.y;
+
+    tmp[i] = 1.2-2*(abs(x-dim.x/2)/dim.x+abs(y-dim.y/2)/dim.y);//0.9*(heightmap[i] - min)/(max - min);
+    heightmap[i] = tmp[i];
+    if(tmp[i] > sediment[i]){
+      sediment[i] = 0.0;
+    }
+    else{
+      sediment[i] -= heightmap[i];
+    }
   }
+
+
+
 }
 
 /*
