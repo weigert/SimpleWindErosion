@@ -1,6 +1,8 @@
 #include "vegetation.h"
 #include "wind.h"
 
+#define SIZE 256
+
 class World{
 public:
   //Constructor
@@ -9,24 +11,24 @@ public:
   void grow();
 
   int SEED = 0;
-  glm::ivec2 dim = glm::vec2(256, 256);  //Size of the heightmap array
+  glm::ivec2 dim = glm::vec2(SIZE, SIZE);  //Size of the heightmap array
 
-  double scale = 80.0;                  //"Physical" Height scaling of the map
-  double heightmap[256*256] = {0.0};    //Flat Array
+  double scale = 40.0;                  //"Physical" Height scaling of the map
+  double heightmap[SIZE*SIZE] = {0.0};    //Flat Array
 
   double sealevel = 20.0;               //
 
-  double windpath[256*256] = {0.0};    //Wind Strength
-  double wspeedx[256*256] = {1.0};     //Wind Strength
-  double wspeedy[256*256] = {1.0};    //Wind Strength
-  double sediment[256*256] = {0.0};    //Sedimentation Pile
+  double windpath[SIZE*SIZE] = {0.0};    //Wind Strength
+  double wspeedx[SIZE*SIZE] = {1.0};     //Wind Strength
+  double wspeedy[SIZE*SIZE] = {1.0};    //Wind Strength
+  double sediment[SIZE*SIZE] = {0.0};    //Sedimentation Pile
 
-  double tmp[256*256] = {0.0};          //Temporary Array
+  double tmp[SIZE*SIZE] = {0.0};          //Temporary Array
   void diffuse(float D, float dt);
 
   //Trees
   std::vector<Plant> trees;
-  double plantdensity[256*256] = {0.0}; //Density for Plants
+  double plantdensity[SIZE*SIZE] = {0.0}; //Density for Plants
 
   //Erosion Process
   bool active = false;
@@ -104,7 +106,7 @@ void World::erode(int cycles){
     windpath[i] = (1.0-lrate)*windpath[i] + lrate*((track[i])?1.0:0.0);
 
   //Diffusion Erosion (Cracking)
-  diffuse(0.001, 1.2);
+  //diffuse(0.001, 1.2);
 }
 
 void World::grow(){
@@ -253,7 +255,7 @@ glm::vec3 waterColor = glm::vec3(0.96, 0.48, 0.32);
 
 //Lighting and Shading
 glm::vec3 skyCol = glm::vec4(0.64, 0.75, 0.9, 1.0f);
-glm::vec3 lightPos = glm::vec3(-100.0f, 100.0f, -150.0f);
+glm::vec3 lightPos = glm::vec3(-100.0f, 100.0f, 150.0f);
 glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 0.9f);
 float lightStrength = 1.4;
 glm::mat4 depthModelMatrix = glm::mat4(1.0);
@@ -329,7 +331,7 @@ std::function<void(Model* m)> constructor = [](Model* m){
 
       //See if we are water or not!
       if(water1) color = waterColor;
-      else color = glm::mix(flatColor, waterColor, p);
+      else color = flatColor;//glm::mix(flatColor, waterColor, p);
 
       glm::vec3 othercolor;
 
@@ -374,7 +376,7 @@ std::function<void(Model* m)> constructor = [](Model* m){
 
       //Lower Triangle
       if(water2) color = waterColor;
-      else color = glm::mix(flatColor, waterColor, p);
+      else color = flatColor;//glm::mix(flatColor, waterColor, p);
 
       m->indices.push_back(m->positions.size()/3+0);
       m->indices.push_back(m->positions.size()/3+1);
@@ -494,6 +496,6 @@ std::function<void()> eventHandler = [&](){
 
 std::function<glm::vec4(double, double)> hydromap = [](double t1, double t2){
   glm::vec4 color = glm::mix(glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec4(0.96, 0.48, 0.32, 1.0), ease::langmuir(t1, 10.0));
-  if(t2 > 0.0) color = glm::mix(color, glm::vec4(0.15, 0.15, 0.45, 1.0), 1.0 - ease::langmuir(t2, 5.0));
+  color = glm::mix(color, glm::vec4(1.0, 0.87, 0.73, 1.0), ease::langmuir(t2, 10.0));
   return color;
 };
