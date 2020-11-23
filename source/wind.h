@@ -14,16 +14,9 @@ struct Wind{
   glm::vec3 speed = pspeed;
   double sediment = 0.0; //Sediment Mass
 
-  double t = 0;
-
   //Parameters
   const float dt = 0.25;
-  const double density = 2.0;         //Affects inertia, volume, area
-  const double abration = 0.001;    //Affects transport rate
   const double suspension = 0.0001;  //Affects transport rate
-  const double dragcoef = 0.1;    //
-  const double liftcoef = 0.1;    //
-  const double minVol = 0.001;
 
   //Sedimenation Process
   void fly(double* h, double* path, double* pool, bool* track, double* pd, glm::ivec2 dim, double scale, double sealevel);
@@ -70,13 +63,7 @@ glm::vec3 surfaceNormal(glm::vec2 pos, double* h, double* s, glm::ivec2 dim, dou
 
 void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::ivec2 dim, double scale, double sealevel){
 
-  //Rotating P-Speed?
-  //t += dt;
-  //pspeed = glm::vec3(cos(t*0.1), 0, sin(t*0.1));
-
   glm::ivec2 ipos;
-
-  int N =  1000;
 
   while(true){
 
@@ -94,7 +81,7 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
     if(height > h[ind] + s[ind]){ //Flying
       speed.y -= dt*0.01; //Gravity
     }
-    else{
+    else{ //Contact Movement
       track[ind] = true;
       speed += glm::cross(glm::cross(speed,n),n);
     }
@@ -108,11 +95,8 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
 
     //Out-Of-Bounds
     if(!glm::all(glm::greaterThanEqual(pos, glm::vec2(0))) ||
-       !glm::all(glm::lessThan((glm::ivec2)pos, dim))){
-
-         //Snap to Grid? Because edge is not eroding correctly...
+       !glm::all(glm::lessThan((glm::ivec2)pos, dim)))
          break;
-    }
 
     /*
         Future: Split Mass-Transport into:
@@ -130,14 +114,19 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
 
       double change = dt*0.001*cdiff;
 
+      if(s[nind] <= 0){
+        s[nind] = 0;
+        //Abrade Here
+      }
       //Remove the Sediment First
-      if(s[nind] > change){
+      else if(s[nind] > change){
         s[nind] -= 0.5*change;
         s[ind] -= 0.5*change;
         cascade(nind, h, s, dim);
         cascade(ind, h, s, dim);
       }
       else s[ind] = 0;
+
     }
     else{ //Floating Particle
 
@@ -146,6 +135,7 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
       s[ind] += 0.5*dt*0.0005*sediment;  //Deposit as Loose
       cascade(nind, h, s, dim);
       cascade(ind, h, s, dim);
+
     }
 
     //Particle has no speed (equilibrium movement)
@@ -162,22 +152,24 @@ void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
     Is this even necessary? Not sure!
   */
 
-  double thresh = 0.005; //Minimum Height Difference (Slope)
-  double settle = 0.01;  //Settling Rate
+  const double thresh = 0.005; //Minimum Height Difference (Slope)
+  const double settle = 0.01;  //Settling Rate
 
   const int size = dim.x*dim.y;
 
   //Neighbor Positions (8-Way)
-  int nx[8] = {-1,-1,-1,0,0,1,1,1};
-  int ny[8] = {-1,0,1,-1,1,-1,0,1};
+  const int nx[8] = {-1,-1,-1,0,0,1,1,1};
+  const int ny[8] = {-1,0,1,-1,1,-1,0,1};
 
   int n[8] = {i-dim.y-1, i-dim.y, i-dim.y+1, i-1, i+1,
               i+dim.y-1, i+dim.y, i+dim.y+1};
 
+  glm::ivec2 ipos;
+
   //Iterate over all Neighbors
   for(int m = 0; m < 8; m++){
 
-    glm::ivec2 ipos = pos;
+    ipos = pos;
 
     if(ipos.x+nx[m] >= dim.x || ipos.y+ny[m] >= dim.y) continue;
     if(ipos.x+nx[m] < 0 || ipos.y+ny[m] < 0) continue;
@@ -193,6 +185,7 @@ void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
       transfer = min(s[i], excess/2.0);
     else         //Neighbor is Larger
       transfer = -min(s[n[m]], excess/2.0);
+
     s[i] -= dt*settle*transfer;
     s[n[m]] += dt*settle*transfer;
 

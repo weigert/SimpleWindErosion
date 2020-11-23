@@ -60,6 +60,7 @@ int main( int argc, char* args[] ) {
     glm::mat4 faceLight = glm::rotate(glm::mat4(1.0), rot - glm::radians(45.0f), glm::vec3(0.0, 1.0, 0.0));
 
     //Tree Shadows
+    /*
     if(!world.trees.empty()){
 
       //Update the Tree Particle System
@@ -81,6 +82,7 @@ int main( int argc, char* args[] ) {
       spritedepth.setMat4("projectionCamera", depthProjection*depthCamera);
       trees.render();
     }
+    */
 
     //Regular Image
     image.target(skyCol);           //Prepare Target

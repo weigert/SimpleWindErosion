@@ -8,7 +8,6 @@ public:
   //Constructor
   void generate();                      //Initialize Heightmap
   void erode(int cycles);               //Erode with N Particles
-  void grow();
 
   int SEED = 0;
   glm::ivec2 dim = glm::vec2(SIZE, SIZE);  //Size of the heightmap array
@@ -19,12 +18,9 @@ public:
   double sealevel = 20.0;               //
 
   double windpath[SIZE*SIZE] = {0.0};    //Wind Strength
-  double wspeedx[SIZE*SIZE] = {1.0};     //Wind Strength
-  double wspeedy[SIZE*SIZE] = {1.0};    //Wind Strength
   double sediment[SIZE*SIZE] = {0.0};    //Sedimentation Pile
 
   double tmp[SIZE*SIZE] = {0.0};          //Temporary Array
-  void diffuse(float D, float dt);
 
   //Trees
   std::vector<Plant> trees;
@@ -66,7 +62,18 @@ void World::generate(){
   }
   //Normalize
   for(int i = 0; i < dim.x*dim.y; i++){
-    sediment[i] = (sediment[i] - min)/(max - min);
+    sediment[i] = 0.1;//0.3*(sediment[i] - min)/(max - min);
+  }
+
+  min = max = 0.0;
+  for(int i = 0; i < dim.x*dim.y; i++){
+    heightmap[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
+    if(heightmap[i] > max) max = heightmap[i];
+    if(heightmap[i] < min) min = heightmap[i];
+  }
+  //Normalize
+  for(int i = 0; i < dim.x*dim.y; i++){
+    heightmap[i] = 0.9*(heightmap[i] - min)/(max - min);
   }
 }
 
@@ -87,18 +94,8 @@ void World::erode(int cycles){
     //Spawn New Particle
     glm::vec2 newpos = glm::vec2(rand()%(int)dim.x, rand()%(int)dim.y);
     Wind wind(newpos);
+    wind.fly(heightmap, windpath, sediment, track, plantdensity, dim, scale, sealevel);
 
-
-  //  int spill = 5;
-  //  while(drop.volume > drop.minVol && spill != 0){
-
-      wind.fly(heightmap, windpath, sediment, track, plantdensity, dim, scale, sealevel);
-
-  //    if(drop.volume > drop.minVol)
-  //      drop.flood(heightmap, sediment, dim);
-
-  //    spill--;
-  //  }
   }
 
   //Update Path
@@ -106,121 +103,7 @@ void World::erode(int cycles){
   for(int i = 0; i < dim.x*dim.y; i++)
     windpath[i] = (1.0-lrate)*windpath[i] + lrate*((track[i])?1.0:0.0);
 
-  //Diffusion Erosion (Cracking)
-  //diffuse(0.001, 1.2);
 }
-
-void World::grow(){
-
-/*
-  //Random Position
-  {
-    int i = rand()%(dim.x*dim.y);
-    glm::vec3 n = surfaceNormal(i, heightmap, dim, scale);
-
-    if( sediment[i] == 0.0 &&
-        windpath[i] < 0.2 &&
-        n.y > 0.8 && (float)(rand()%10)/(10.0) > 0.5){
-
-        Plant ntree(i, dim);
-        ntree.root(plantdensity, dim, 1.0);
-        trees.push_back(ntree);
-    }
-  }
-
-  //Loop over all Trees
-  for(int i = 0; i < trees.size(); i++){
-
-    //Grow the Tree
-    trees[i].grow();
-
-    //Spawn a new Tree!
-    if(rand()%50 == 0){
-      //Find New Position
-      glm::vec2 npos = trees[i].pos + glm::vec2(rand()%9-4, rand()%9-4);
-
-      //Check for Out-Of-Bounds
-      if( npos.x >= 0 && npos.x < dim.x &&
-          npos.y >= 0 && npos.y < dim.y ){
-
-        Plant ntree(npos, dim);
-        glm::vec3 n = surfaceNormal(ntree.index, heightmap, dim, scale);
-
-        if( sediment[ntree.index] == 0.0 &&
-            windpath[ntree.index] < 0.2 &&
-            n.y > 0.8 &&
-            (double)(rand()%1000)/1000.0 > plantdensity[ntree.index]){
-              ntree.root(plantdensity, dim, 1.0);
-              trees.push_back(ntree);
-            }
-      }
-    }
-
-    //If the tree is in a pool or in a stream, kill it
-    if(sediment[trees[i].index] > 0.0 ||
-       windpath[trees[i].index] > 0.2 ||
-       rand()%1000 == 0 ){ //Random Death Chance
-         trees[i].root(plantdensity, dim, -1.0);
-         trees.erase(trees.begin()+i);
-         i--;
-       }
-  }
-*/
-};
-
-void World::diffuse(float D, float dt){
-  //dh/dt = D(d^2h/dx^2 + d^2h/dy^2)
-
-  for(int i = 0; i < dim.x; i++){ //X
-    for(int j = 0; j < dim.y; j++){ //Y
-      tmp[i*dim.y+j] = 0;
-
-      //Compute the Indices (X)
-      int nx, cx, px;
-      int ny, cy, py;
-
-      if(i == 0){
-        nx = i*dim.y+j;
-        cx = (i+1)*dim.y+j;
-        px = (i+2)*dim.y+j;
-      }
-      else if(i == dim.x-1){
-        nx = (i-2)*dim.y+j;
-        cx = (i-1)*dim.y+j;
-        px = i*dim.y+j;
-      }
-      else{
-        nx = (i-1)*dim.y+j;
-        cx = i*dim.y+j;
-        px = (i+1)*dim.y+j;
-      }
-
-      //Compute the Indices (Y)
-      if(j == 0){
-        ny = i*dim.y+j;
-        cy = i*dim.y+j+1;
-        py = i*dim.y+j+2;
-      }
-      else if(j == dim.y-1){
-        ny = i*dim.y+j-2;
-        cy = i*dim.y+j-1;
-        py = i*dim.y+j;
-      }
-      else{
-        ny = i*dim.y+j-1;
-        cy = i*dim.y+j;
-        py = i*dim.y+j+1;
-      }
-
-      tmp[i*dim.y+j] += D*abs(sediment[px]-sediment[nx])*(sediment[px]+sediment[nx]-2*sediment[cx]);
-      tmp[i*dim.y+j] += D*abs(sediment[py]-sediment[ny])*(sediment[py]+sediment[ny]-2*sediment[cy]);
-    }
-  }
-
-  for(int i = 0; i < dim.x*dim.y; i++){
-    sediment[i] += dt*tmp[i];
-  }
-};
 
 /*
 ===================================================
