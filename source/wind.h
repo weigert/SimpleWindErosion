@@ -131,23 +131,21 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
       double change = dt*0.001*cdiff;
 
       //Remove the Sediment First
-      if(s[ind] > change) s[ind] -= change;
-      else{
-        change -= s[ind];
-        s[ind] = 0;
-        h[ind] -= change;
+      if(s[nind] > change){
+        s[nind] -= 0.5*change;
+        s[ind] -= 0.5*change;
+        cascade(nind, h, s, dim);
+        cascade(ind, h, s, dim);
       }
-
-      //cascade(nind, h, s, dim);
-
+      else s[ind] = 0;
     }
     else{ //Floating Particle
 
       sediment -= dt*0.005*sediment;  //Lose Sediment
-      s[nind] += dt*0.0005*sediment;  //Deposit as Loose
-
+      s[nind] += 0.5*dt*0.0005*sediment;  //Deposit as Loose
+      s[ind] += 0.5*dt*0.0005*sediment;  //Deposit as Loose
       cascade(nind, h, s, dim);
-
+      cascade(ind, h, s, dim);
     }
 
     //Particle has no speed (equilibrium movement)
@@ -170,14 +168,19 @@ void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
   const int size = dim.x*dim.y;
 
   //Neighbor Positions (8-Way)
-  int n[8] = {i+1, i+dim.y, i-1, i-dim.y,
-              i+1+dim.y, i-1+dim.y, i+1-dim.y, i-1-dim.y};
+  int nx[8] = {-1,-1,-1,0,0,1,1,1};
+  int ny[8] = {-1,0,1,-1,1,-1,0,1};
+
+  int n[8] = {i-dim.y-1, i-dim.y, i-dim.y+1, i-1, i+1,
+              i+dim.y-1, i+dim.y, i+dim.y+1};
 
   //Iterate over all Neighbors
   for(int m = 0; m < 8; m++){
 
-    //Out of Bounds
-    if(n[m] < 0 || n[m] >= size) continue;
+    glm::ivec2 ipos = pos;
+
+    if(ipos.x+nx[m] >= dim.x || ipos.y+ny[m] >= dim.y) continue;
+    if(ipos.x+nx[m] < 0 || ipos.y+ny[m] < 0) continue;
 
     //Pile Size Difference
     float diff = (h[i]+s[i]) - (h[n[m]]+s[n[m]]);

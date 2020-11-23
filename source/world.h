@@ -13,7 +13,7 @@ public:
   int SEED = 0;
   glm::ivec2 dim = glm::vec2(SIZE, SIZE);  //Size of the heightmap array
 
-  double scale = 40.0;                  //"Physical" Height scaling of the map
+  double scale = 80.0;                  //"Physical" Height scaling of the map
   double heightmap[SIZE*SIZE] = {0.0};    //Flat Array
 
   double sealevel = 20.0;               //
@@ -60,13 +60,13 @@ void World::generate(){
 
   double min, max = 0.0;
   for(int i = 0; i < dim.x*dim.y; i++){
-    heightmap[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
-    if(heightmap[i] > max) max = heightmap[i];
-    if(heightmap[i] < min) min = heightmap[i];
+    sediment[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
+    if(sediment[i] > max) max = sediment[i];
+    if(sediment[i] < min) min = sediment[i];
   }
   //Normalize
   for(int i = 0; i < dim.x*dim.y; i++){
-    heightmap[i] = (heightmap[i] - min)/(max - min);
+    sediment[i] = (sediment[i] - min)/(max - min);
   }
 }
 
@@ -75,6 +75,7 @@ void World::generate(){
           HYDRAULIC EROSION FUNCTIONS
 ===================================================
 */
+
 void World::erode(int cycles){
 
   //Track the Movement of all Particles
@@ -211,13 +212,13 @@ void World::diffuse(float D, float dt){
         py = i*dim.y+j+1;
       }
 
-      tmp[i*dim.y+j] += D*abs(heightmap[px]-heightmap[nx])*(heightmap[px]+heightmap[nx]-2*heightmap[cx]);
-      tmp[i*dim.y+j] += D*abs(heightmap[py]-heightmap[ny])*(heightmap[py]+heightmap[ny]-2*heightmap[cy]);
+      tmp[i*dim.y+j] += D*abs(sediment[px]-sediment[nx])*(sediment[px]+sediment[nx]-2*sediment[cx]);
+      tmp[i*dim.y+j] += D*abs(sediment[py]-sediment[ny])*(sediment[py]+sediment[ny]-2*sediment[cy]);
     }
   }
 
   for(int i = 0; i < dim.x*dim.y; i++){
-    heightmap[i] += dt*tmp[i];
+    sediment[i] += dt*tmp[i];
   }
 };
 
@@ -327,11 +328,10 @@ std::function<void(Model* m)> constructor = [](Model* m){
 
       //Get the Color of the Ground (Water vs. Flat)
       glm::vec3 color;
-      double p = ease::langmuir(world.windpath[ind], 10.0);
+      double p = ease::langmuir(world.sediment[ind], 10.0);
 
       //See if we are water or not!
-      if(water1) color = waterColor;
-      else color = flatColor;//glm::mix(flatColor, waterColor, p);
+      color = glm::mix(flatColor, waterColor, p);
 
       glm::vec3 othercolor;
 
@@ -495,7 +495,8 @@ std::function<void()> eventHandler = [&](){
 };
 
 std::function<glm::vec4(double, double)> hydromap = [](double t1, double t2){
-  glm::vec4 color = glm::mix(glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec4(0.96, 0.48, 0.32, 1.0), ease::langmuir(t1, 10.0));
-  color = glm::mix(color, glm::vec4(1.0, 0.87, 0.73, 1.0), ease::langmuir(t2, 10.0));
+  glm::vec4 color = glm::mix(glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec4(1.0, 0.87, 0.73, 1.0), ease::langmuir(t2, 10.0));
+
+  color = glm::mix(color, glm::vec4(0.96, 0.48, 0.32, 1.0), ease::langmuir(t1, 10.0));
   return color;
 };
