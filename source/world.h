@@ -65,12 +65,10 @@ void World::generate(){
   for(int i = 0; i < dim.x*dim.y; i++){
     float x = i/dim.y;
     float y = i%dim.y;
-
-    float p = 1.2-2*(abs(x-dim.x/2)/dim.x+abs(y-dim.y/2)/dim.y);
     sediment[i] += (tmp[i] - min)/(max - min);
-
   }
 
+/*
   min = max = 0.0;
   for(int i = 0; i < dim.x*dim.y; i++){
     heightmap[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
@@ -91,7 +89,7 @@ void World::generate(){
       sediment[i] -= heightmap[i];
     }
   }
-
+*/
 
 
 }
@@ -106,6 +104,10 @@ void World::erode(int cycles){
 
   //Track the Movement of all Particles
   bool track[dim.x*dim.y] = {false};
+
+  /*
+      To-Do: Track particles in the air (dust storms)
+  */
 
   //Do a series of iterations!
   for(int i = 0; i < cycles; i++){
@@ -157,7 +159,8 @@ glm::vec3 flatColor = glm::vec3(0.84, 0.65, 0.36);
 glm::vec3 waterColor = glm::vec3(0.96, 0.48, 0.32);
 
 //Lighting and Shading
-glm::vec3 skyCol = glm::vec4(0.64, 0.75, 0.9, 1.0f);
+//glm::vec3 skyCol = glm::vec4(0.64, 0.75, 0.9, 1.0f);
+glm::vec3 skyCol = glm::vec4(0.3, 0.42, 0.48, 1.0f);
 glm::vec3 lightPos = glm::vec3(-100.0f, 100.0f, 150.0f);
 glm::vec3 lightCol = glm::vec3(1.0f, 1.0f, 0.9f);
 float lightStrength = 1.4;
@@ -230,10 +233,10 @@ std::function<void(Model* m)> constructor = [](Model* m){
 
       //Get the Color of the Ground (Water vs. Flat)
       glm::vec3 color;
-      double p = ease::langmuir(world.sediment[ind], 10.0);
+      //double p = ease::langmuir(world.sediment[ind], 10.0);
 
       //See if we are water or not!
-      color = glm::mix(flatColor, waterColor, p);
+      color = waterColor;//glm::mix(flatColor, waterColor, p);
 
       glm::vec3 othercolor;
 
@@ -261,10 +264,10 @@ std::function<void(Model* m)> constructor = [](Model* m){
 
         //Add the Color!
         if(n1.y < steepness && !water1){
-          othercolor = glm::mix(steepColor, color, p);
-          m->colors.push_back(othercolor.x);
-          m->colors.push_back(othercolor.y);
-          m->colors.push_back(othercolor.z);
+          //othercolor = glm::mix(steepColor, color, p);
+          m->colors.push_back(steepColor.x);
+          m->colors.push_back(steepColor.y);
+          m->colors.push_back(steepColor.z);
           m->colors.push_back(1.0);
         }
         else{
@@ -277,8 +280,9 @@ std::function<void(Model* m)> constructor = [](Model* m){
       }
 
       //Lower Triangle
-      if(water2) color = waterColor;
-      else color = flatColor;//glm::mix(flatColor, waterColor, p);
+      //if(water2) color = waterColor;
+      //else color = flatColor;//glm::mix(flatColor, waterColor, p);
+      color = waterColor;
 
       m->indices.push_back(m->positions.size()/3+0);
       m->indices.push_back(m->positions.size()/3+1);

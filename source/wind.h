@@ -171,6 +171,8 @@ void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
 
     ipos = pos;
 
+    if(n[m] < 0 || n[m] >= size) continue;
+
     if(ipos.x+nx[m] >= dim.x || ipos.y+ny[m] >= dim.y) continue;
     if(ipos.x+nx[m] < 0 || ipos.y+ny[m] < 0) continue;
 
