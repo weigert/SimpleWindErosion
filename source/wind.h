@@ -17,7 +17,7 @@ struct Wind{
   //Parameters
   const float dt = 0.25;
   const double suspension = 0.002;  //Affects transport rate
-  const double abrasion = 0.001;
+  const double abrasion = 0.01;
   const double roughness = 0.005;
   const double settling = 0.05;
 
@@ -129,7 +129,7 @@ void Wind::fly(double* h, double* w, double* s, bool* track, glm::ivec2 dim, dou
     else{
 
       sediment -= dt*suspension*sediment;
-      
+
       s[nind] += 0.5*dt*suspension*sediment;
       s[ind]  += 0.5*dt*suspension*sediment;
 

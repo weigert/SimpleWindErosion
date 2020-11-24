@@ -24,11 +24,6 @@ int main( int argc, char* args[] ) {
   Shader sprite("source/shader/sprite.vs", "source/shader/sprite.fs", {"in_Quad", "in_Tex", "in_Model"});
   Shader spritedepth("source/shader/spritedepth.vs", "source/shader/spritedepth.fs", {"in_Quad", "in_Tex", "in_Model"});
 
-  //Trees as a Particle System
-  Particle trees;
-  Texture tree(image::load("resource/Tree.png"));
-  Texture treenormal(image::load("resource/TreeNormal.png"));
-
   //Setup Rendering Billboards
   Billboard shadow(2000, 2000, true); //800x800, depth only
   Billboard image(WIDTH, HEIGHT, false); //1200x800, depth only
@@ -59,31 +54,6 @@ int main( int argc, char* args[] ) {
       rot *= -1.0;
     glm::mat4 faceLight = glm::rotate(glm::mat4(1.0), rot - glm::radians(45.0f), glm::vec3(0.0, 1.0, 0.0));
 
-    //Tree Shadows
-    /*
-    if(!world.trees.empty()){
-
-      //Update the Tree Particle System
-      trees.models.clear();
-      for(auto& t: world.trees){
-        glm::vec3 tpos = glm::vec3(t.pos.x, t.size + world.scale*world.heightmap[t.index], t.pos.y);
-        glm::mat4 model = glm::translate(glm::mat4(1.0), tpos - viewPos);
-        model = glm::rotate(model, rot, glm::vec3(0.0, 1.0, 0.0)); //Face Camera
-        model = glm::scale(model, glm::vec3(t.size));
-        trees.models.push_back(model);
-      }
-      trees.update();
-
-      //Render the Trees as a Particle System
-      spritedepth.use();
-      glActiveTexture(GL_TEXTURE0+0);
-      glBindTexture(GL_TEXTURE_2D, tree.texture);
-      spritedepth.setInt("spriteTexture", 0);
-      spritedepth.setMat4("projectionCamera", depthProjection*depthCamera);
-      trees.render();
-    }
-    */
-
     //Regular Image
     image.target(skyCol);           //Prepare Target
     shader.use();                   //Prepare Shader
@@ -101,35 +71,6 @@ int main( int argc, char* args[] ) {
     shader.setVec3("steepColor", steepColor);
     shader.setFloat("steepness", steepness);
     model.render(GL_TRIANGLES);    //Render Model
-
-    //Render the Trees
-    if(!world.trees.empty()){
-
-      //Update the Tree Particle System
-      trees.models.clear();
-      for(auto& t: world.trees){
-        glm::vec3 tpos = glm::vec3(t.pos.x, t.size + world.scale*world.heightmap[t.index], t.pos.y);
-        glm::mat4 model = glm::translate(glm::mat4(1.0), tpos - viewPos);
-        model = glm::rotate(model, -glm::radians(rotation - 45.0f), glm::vec3(0.0, 1.0, 0.0)); //Face Camera
-        model = glm::scale(model, glm::vec3(t.size));
-        trees.models.push_back(model);
-      }
-      trees.update();
-
-      sprite.use();
-      glActiveTexture(GL_TEXTURE0+0);
-      glBindTexture(GL_TEXTURE_2D, tree.texture);
-      sprite.setInt("spriteTexture", 0);
-      glActiveTexture(GL_TEXTURE0+1);
-      glBindTexture(GL_TEXTURE_2D, treenormal.texture);
-      sprite.setInt("normalTexture", 1);
-      sprite.setMat4("projectionCamera", projection*camera);
-      sprite.setMat4("faceLight", faceLight);
-      sprite.setVec3("lightPos", lightPos);
-      glm::mat4 M = glm::rotate(glm::mat4(1.0), glm::radians(rotation - 45.0f), glm::vec3(0.0, 1.0, 0.0));
-      sprite.setVec3("lookDir", M*glm::vec4(cameraPos, 1.0));
-      trees.render();
-    }
 
     //Render to Screen
     Tiny::view.target(color::black);    //Prepare Target

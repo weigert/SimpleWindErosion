@@ -1,4 +1,3 @@
-#include "vegetation.h"
 #include "wind.h"
 
 #define SIZE 256
@@ -13,18 +12,13 @@ public:
   glm::ivec2 dim = glm::vec2(SIZE, SIZE);  //Size of the heightmap array
 
   double scale = 80.0;                  //"Physical" Height scaling of the map
-  double heightmap[SIZE*SIZE] = {0.0};    //Flat Array
+  double heightmap[SIZE*SIZE] = {0.0};  //Flat Array
 
   double sealevel = 20.0;               //
 
-  double windpath[SIZE*SIZE] = {0.0};    //Wind Strength
-  double sediment[SIZE*SIZE] = {0.0};    //Sedimentation Pile
-
-  double tmp[SIZE*SIZE] = {0.0};          //Temporary Array
-
-  //Trees
-  std::vector<Plant> trees;
-  double plantdensity[SIZE*SIZE] = {0.0}; //Density for Plants
+  double windpath[SIZE*SIZE] = {0.0};   //Wind Strength
+  double sediment[SIZE*SIZE] = {0.0};   //Sedimentation Pile
+  double tmp[SIZE*SIZE] = {0.0};        //Temporary Array
 
   //Erosion Process
   bool active = false;
@@ -70,7 +64,10 @@ void World::generate(){
     //sediment[i] = 0.1;
   }
 
-/*
+
+  /*
+  //Note: Uncomment to place a huge pyramid in the middle
+
   min = max = 0.0;
   for(int i = 0; i < dim.x*dim.y; i++){
     heightmap[i] = perlin.GetValue((i/dim.y)*(1.0/dim.x), (i%dim.y)*(1.0/dim.y), SEED);
@@ -91,8 +88,7 @@ void World::generate(){
       sediment[i] -= heightmap[i];
     }
   }
-*/
-
+  */
 
 }
 
@@ -156,9 +152,9 @@ glm::vec3 viewPos = glm::vec3(world.dim.x/2.0, world.scale/2.0, world.dim.y/2.0)
 //Shader Stuff
 float steepness = 0.8;
 //Desert Colors
-glm::vec3 steepColor = glm::vec3(0.78, 0.6, 0.168);
-glm::vec3 flatColor = glm::vec3(0.84, 0.65, 0.36);
-glm::vec3 waterColor = glm::vec3(0.96, 0.48, 0.32);
+glm::vec3 flatColor = glm::vec3(0.80, 0.68, 0.44);
+glm::vec3 sedimentColor = glm::vec3(0.96, 0.48, 0.32);
+glm::vec3 steepColor = sedimentColor;//glm::vec3(0.78, 0.6, 0.168);
 
 //Lighting and Shading
 //glm::vec3 skyCol = glm::vec4(0.64, 0.75, 0.9, 1.0f);
@@ -199,13 +195,13 @@ std::function<void(Model* m)> constructor = [](Model* m){
       glm::vec3 d = glm::vec3(i+1, world.scale*world.heightmap[ind+world.dim.y+1], j+1);
 
       //Check if the Surface is Water
-      bool water1 = (world.sediment[ind] > 0.0 &&
-                     world.sediment[ind+world.dim.y] > 0.0 &&
-                     world.sediment[ind+1] > 0.0);
+      bool cover1 = (world.sediment[ind] > 0.001 &&
+                     world.sediment[ind+world.dim.y] > 0.001 &&
+                     world.sediment[ind+1] > 0.001);
 
-      bool water2 = (world.sediment[ind+world.dim.y] > 0.0 &&
-                     world.sediment[ind+1] > 0.0 &&
-                     world.sediment[ind+world.dim.y+1] > 0.0);
+      bool cover2 = (world.sediment[ind+world.dim.y] > 0.001 &&
+                     world.sediment[ind+1] > 0.001 &&
+                     world.sediment[ind+world.dim.y+1] > 0.001);
 
       //Add the Pool Height
       a += glm::vec3(0.0, world.scale*world.sediment[ind], 0.0);
@@ -213,34 +209,10 @@ std::function<void(Model* m)> constructor = [](Model* m){
       c += glm::vec3(0.0, world.scale*world.sediment[ind+1], 0.0);
       d += glm::vec3(0.0, world.scale*world.sediment[ind+world.dim.y+1], 0.0);
 
-      std::function<double(double d)> ease = [](double d){
-        //const double K = 0.01;
-        //const double B = 0.01*world.scale;
-        //return B*K*d/(1+K*d);
-        //0.1 = shallow river
-        //
-
-        //if(d > 0.1)
-        //  return -0.02*(d-0.1)*world.scale;
-        return 0.0;
-      };
-
-      //Add the Stream Height
-      a += glm::vec3(0.0, ease(world.windpath[ind]), 0.0);
-      b += glm::vec3(0.0, ease(world.windpath[ind+world.dim.y]), 0.0);
-      c += glm::vec3(0.0, ease(world.windpath[ind+1]), 0.0);
-      d += glm::vec3(0.0, ease(world.windpath[ind+world.dim.y+1]), 0.0);
-
       //UPPER TRIANGLE
-
-      //Get the Color of the Ground (Water vs. Flat)
       glm::vec3 color;
-      //double p = ease::langmuir(world.sediment[ind], 10.0);
-
-      //See if we are water or not!
-      color = waterColor;//glm::mix(flatColor, waterColor, p);
-
-      glm::vec3 othercolor;
+      if(!cover1) color = flatColor;
+      else color = sedimentColor;//mix(flatColor, sedimentColor, ease::langmuir(world.sediment[ind], 1000.0));
 
       //Add Indices
       m->indices.push_back(m->positions.size()/3+0);
@@ -264,27 +236,15 @@ std::function<void(Model* m)> constructor = [](Model* m){
         m->normals.push_back(n1.y);
         m->normals.push_back(n1.z);
 
-        //Add the Color!
-        if(n1.y < steepness && !water1){
-          //othercolor = glm::mix(steepColor, color, p);
-          m->colors.push_back(steepColor.x);
-          m->colors.push_back(steepColor.y);
-          m->colors.push_back(steepColor.z);
-          m->colors.push_back(1.0);
-        }
-        else{
-          m->colors.push_back(color.x);
-          m->colors.push_back(color.y);
-          m->colors.push_back(color.z);
-          m->colors.push_back(1.0);
-        }
+        m->colors.push_back(color.x);
+        m->colors.push_back(color.y);
+        m->colors.push_back(color.z);
+        m->colors.push_back(1.0);
 
       }
 
-      //Lower Triangle
-      //if(water2) color = waterColor;
-      //else color = flatColor;//glm::mix(flatColor, waterColor, p);
-      color = waterColor;
+      if(!cover2) color = flatColor;
+      else color = sedimentColor;//mix(flatColor, sedimentColor, ease::langmuir(world.sediment[ind], 1000.0));
 
       m->indices.push_back(m->positions.size()/3+0);
       m->indices.push_back(m->positions.size()/3+1);
@@ -307,18 +267,10 @@ std::function<void(Model* m)> constructor = [](Model* m){
         m->normals.push_back(n2.y);
         m->normals.push_back(n2.z);
 
-        if(n2.y < steepness && !water2){
-          m->colors.push_back(steepColor.x);
-          m->colors.push_back(steepColor.y);
-          m->colors.push_back(steepColor.z);
-          m->colors.push_back(1.0);
-        }
-        else{
-          m->colors.push_back(color.x);
-          m->colors.push_back(color.y);
-          m->colors.push_back(color.z);
-          m->colors.push_back(1.0);
-        }
+        m->colors.push_back(color.x);
+        m->colors.push_back(color.y);
+        m->colors.push_back(color.z);
+        m->colors.push_back(1.0);
 
       }
     }
