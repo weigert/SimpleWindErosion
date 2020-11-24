@@ -65,7 +65,8 @@ void World::generate(){
   for(int i = 0; i < dim.x*dim.y; i++){
     float x = i/dim.y;
     float y = i%dim.y;
-    sediment[i] += (tmp[i] - min)/(max - min);
+    heightmap[i] += (tmp[i] - min)/(max - min);
+    sediment[i] = 0.1;
   }
 
 /*
