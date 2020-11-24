@@ -65,8 +65,9 @@ void World::generate(){
   for(int i = 0; i < dim.x*dim.y; i++){
     float x = i/dim.y;
     float y = i%dim.y;
-    heightmap[i] += (tmp[i] - min)/(max - min);
-    sediment[i] = 0.1;
+    //heightmap[i] += (tmp[i] - min)/(max - min);
+    sediment[i] += (tmp[i] - min)/(max - min);
+    //sediment[i] = 0.1;
   }
 
 /*
@@ -106,17 +107,17 @@ void World::erode(int cycles){
   //Track the Movement of all Particles
   bool track[dim.x*dim.y] = {false};
 
-  /*
-      To-Do: Track particles in the air (dust storms)
-  */
-
   //Do a series of iterations!
   for(int i = 0; i < cycles; i++){
 
-    //Spawn New Particle
-    glm::vec2 newpos = glm::vec2(rand()%(int)dim.x, rand()%(int)dim.y);
+    //Spawn New Particle on Boundary
+    glm::vec2 newpos;
+    int shift = rand()%(int)(dim.x+dim.y);
+    if(shift < dim.x) newpos = glm::vec2(shift, 1);
+    else              newpos = glm::vec2(1, shift-dim.x);
+
     Wind wind(newpos);
-    wind.fly(heightmap, windpath, sediment, track, plantdensity, dim, scale, sealevel);
+    wind.fly(heightmap, windpath, sediment, track, dim, scale);
 
   }
 

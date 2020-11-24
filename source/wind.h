@@ -16,17 +16,15 @@ struct Wind{
 
   //Parameters
   const float dt = 0.25;
-  const double suspension = 0.0001;  //Affects transport rate
-  const double abrasion = 0.0001;
+  const double suspension = 0.002;  //Affects transport rate
+  const double abrasion = 0.001;
+  const double roughness = 0.005;
+  const double settling = 0.05;
 
   //Sedimenation Process
-  void fly(double* h, double* path, double* pool, bool* track, double* pd, glm::ivec2 dim, double scale, double sealevel);
+  void fly(double* h, double* path, double* pool, bool* track, glm::ivec2 dim, double scale);
   void cascade(int i, double* height, double* sediment, glm::ivec2 dim);
 };
-
-/*
-    Note: It matters where we came from when changing the heights...
-*/
 
 glm::vec3 surfaceNormal(int index, double* h, double* s, glm::ivec2 dim, double scale){
 
@@ -62,7 +60,7 @@ glm::vec3 surfaceNormal(glm::vec2 pos, double* h, double* s, glm::ivec2 dim, dou
 
 }
 
-void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::ivec2 dim, double scale, double sealevel){
+void Wind::fly(double* h, double* w, double* s, bool* track, glm::ivec2 dim, double scale){
 
   glm::ivec2 ipos;
 
@@ -84,7 +82,7 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
     }
     else{ //Contact Movement
       track[ind] = true;
-      speed += glm::cross(glm::cross(speed,n),n);
+      speed += dt*glm::cross(glm::cross(speed,n),n);
     }
 
     speed += 0.1f*dt*(pspeed - speed);
@@ -100,38 +98,43 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
          break;
 
     //Mass Transport
-    if(height <= h[nind] + s[nind]){ //Abrading Particle
 
-      double cdiff = glm::length(speed)*(s[nind]+h[nind]-height);
-      double change = dt*0.001*cdiff;
+    //Surface Contact
+    if(height <= h[nind] + s[nind]){
 
-      if(s[nind] <= 0){ //Abrasion
+      double force = glm::length(speed)*(s[nind]+h[nind]-height);
 
-        s[nind] = 0;
+      //Abrasion
+      if(s[ind] <= 0){
 
-        h[ind] -= cdiff*abrasion*sediment;
-        s[ind] += cdiff*abrasion*sediment;
+        s[ind] = 0;
+        h[ind] -= dt*abrasion*force*sediment;
+        s[ind] += dt*abrasion*force*sediment;
 
       }
-      else if(s[nind] > change){ //Remove Sediment
-        s[nind] -= 0.5*change;
-        s[ind] -= 0.5*change;
-        cascade(nind, h, s, dim);
+
+      //Suspension
+      else if(s[ind] > dt*suspension*force){
+
+        s[ind] -= dt*suspension*force;
+        sediment += dt*suspension*force;
         cascade(ind, h, s, dim);
+
       }
       else s[ind] = 0; //Set to zero
 
-      //Abrasion
-      sediment += dt*0.01*cdiff;
-
     }
-    else{ //Floating Particle
 
-      sediment -= dt*0.005*sediment;  //Lose Sediment
-      s[nind] += 0.5*dt*0.0005*sediment;  //Deposit as Loose
-      s[ind] += 0.5*dt*0.0005*sediment;  //Deposit as Loose
+    //Flying Particle
+    else{
+
+      sediment -= dt*suspension*sediment;
+      
+      s[nind] += 0.5*dt*suspension*sediment;
+      s[ind]  += 0.5*dt*suspension*sediment;
+
       cascade(nind, h, s, dim);
-      cascade(ind, h, s, dim);
+      cascade( ind, h, s, dim);
 
     }
 
@@ -142,15 +145,6 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
 };
 
 void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
-
-  /*
-    To-Do: Make this neighbor recursive?
-
-    Is this even necessary? Not sure!
-  */
-
-  const double thresh = 0.005; //Minimum Height Difference (Slope)
-  const double settle = 0.01;  //Settling Rate
 
   const int size = dim.x*dim.y;
 
@@ -175,7 +169,7 @@ void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
 
     //Pile Size Difference
     float diff = (h[i]+s[i]) - (h[n[m]]+s[n[m]]);
-    float excess = abs(diff) - thresh;
+    float excess = abs(diff) - roughness;
     if(excess <= 0) continue;
 
     //Transfer Mass
@@ -185,8 +179,8 @@ void Wind::cascade(int i, double* h, double* s, const glm::ivec2 dim){
     else         //Neighbor is Larger
       transfer = -min(s[n[m]], excess/2.0);
 
-    s[i] -= dt*settle*transfer;
-    s[n[m]] += dt*settle*transfer;
+    s[i] -= dt*settling*transfer;
+    s[n[m]] += dt*settling*transfer;
 
   }
 
