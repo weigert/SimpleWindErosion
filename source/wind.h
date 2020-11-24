@@ -17,6 +17,7 @@ struct Wind{
   //Parameters
   const float dt = 0.25;
   const double suspension = 0.0001;  //Affects transport rate
+  const double abrasion = 0.0001;
 
   //Sedimenation Process
   void fly(double* h, double* path, double* pool, bool* track, double* pd, glm::ivec2 dim, double scale, double sealevel);
@@ -98,34 +99,30 @@ void Wind::fly(double* h, double* w, double* s, bool* track, double* pd, glm::iv
        !glm::all(glm::lessThan((glm::ivec2)pos, dim)))
          break;
 
-    /*
-        Future: Split Mass-Transport into:
-        - Abrasion leads to sediment production
-        - Suspension lifts and moves sediment
-        - Cascading equalized sediment.
-    */
-
     //Mass Transport
     if(height <= h[nind] + s[nind]){ //Abrading Particle
 
-      //Non-Abrading Process
       double cdiff = glm::length(speed)*(s[nind]+h[nind]-height);
-      sediment += dt*0.01*cdiff;
-
       double change = dt*0.001*cdiff;
 
-      if(s[nind] <= 0){
+      if(s[nind] <= 0){ //Abrasion
+
         s[nind] = 0;
-        //Abrade Here
+
+        h[ind] -= cdiff*abrasion*sediment;
+        s[ind] += cdiff*abrasion*sediment;
+
       }
-      //Remove the Sediment First
-      else if(s[nind] > change){
+      else if(s[nind] > change){ //Remove Sediment
         s[nind] -= 0.5*change;
         s[ind] -= 0.5*change;
         cascade(nind, h, s, dim);
         cascade(ind, h, s, dim);
       }
-      else s[ind] = 0;
+      else s[ind] = 0; //Set to zero
+
+      //Abrasion
+      sediment += dt*0.01*cdiff;
 
     }
     else{ //Floating Particle
