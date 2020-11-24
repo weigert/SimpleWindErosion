@@ -6,6 +6,8 @@ Rendered using my homebrew [TinyEngine](https://github.com/weigert/TinyEngine).
 
 [Link to a blog post about this](https://weigert.vsos.ethz.ch/2020/11/23/particle-based-wind-erosion/).
 
+![Two Dune Simulations](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dunes.png)
+
 ## Compiling
 
 Use the makefile to compile the program.
@@ -41,6 +43,12 @@ If no seed is specified, it will take a random one.
     - Move the Camera Anchor: WASD / SPACE / C
     
 ## Screenshots
+
+![Dune simulation with only sediment](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune.png)
+Cascading and suspension simulation with only sediment
+
+![Two Dune Simulations](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune2.png)
+Abrasion testing with non-suspendable solid layer
 
 ## Reading
 
