@@ -41,7 +41,7 @@ If no seed is specified, it will take a random one.
     - Change Camera Vertical Angle: UP / DOWN
     - Toggle Hydrology Map View: ESC
     - Move the Camera Anchor: WASD / SPACE / C
-    
+
 ## Screenshots
 
 ![Dune simulation with only sediment](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune.png)
@@ -53,8 +53,8 @@ Abrasion testing with non-suspendable solid layer
 ## Reading
 
 `wind.h` - wind particle movement, sedimentation process
+
 `world.h` - world data storage, generation, rendering
-`vegetation.h` - currently inactive
 
 ## License
 MIT License
