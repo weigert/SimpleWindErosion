@@ -44,11 +44,13 @@ If no seed is specified, it will take a random one.
 
 ## Screenshots
 
-![Dune simulation with only sediment](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune.png)
-Cascading and suspension simulation with only sediment
+![](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune1C.png)
 
-![Two Dune Simulations](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune2.png)
-Abrasion testing with non-suspendable solid layer
+![](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dune2A.png)
+Simulated dune formation with sedimentation and cascading.
+
+![Pyramid](https://github.com/weigert/SimpleWindErosion/blob/master/screenshots/dunepyramid.png)
+Simulated dune formation with additional obstacles and abrasion.
 
 ## Reading
 
