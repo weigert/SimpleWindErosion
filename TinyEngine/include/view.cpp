@@ -19,7 +19,7 @@ class View{
 
     //Flags
     bool fullscreen = false;
-    bool vsync = false;
+    bool vsync = true;
 };
 
 bool View::init(std::string _name, int _width, int _height){

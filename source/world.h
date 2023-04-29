@@ -17,8 +17,6 @@ public:
   double sealevel = 20.0;               //
 
   double windpath[SIZE*SIZE] = {0.0};   //Wind Strength
-  double windxdir[SIZE*SIZE] = {0.0};   //Wind Strength
-  double windydir[SIZE*SIZE] = {0.0};   //Wind Strength
   double sediment[SIZE*SIZE] = {0.0};   //Sedimentation Pile
   double tmp[SIZE*SIZE] = {0.0};        //Temporary Array
 
@@ -49,6 +47,7 @@ void World::generate(){
   perlin.SetOctaveCount(8);
   perlin.SetFrequency(1.0);
   perlin.SetPersistence(0.5);
+
 
   double min, max = 0.0;
   for(int i = 0; i < dim.x*dim.y; i++){
@@ -104,9 +103,6 @@ void World::erode(int cycles){
   //Track the Movement of all Particles
   bool track[dim.x*dim.y] = {false};
 
-  double xtrack[dim.x*dim.y] = {0.0};
-  double ytrack[dim.x*dim.y] = {0.0};
-
   //Do a series of iterations!
   for(int i = 0; i < cycles; i++){
 
@@ -117,20 +113,14 @@ void World::erode(int cycles){
     else              newpos = glm::vec2(1, shift-dim.x);
 
     Wind wind(newpos);
-    wind.fly(heightmap, windpath, sediment, track, dim, scale, xtrack, ytrack);
+    wind.fly(heightmap, windpath, sediment, track, dim, scale);
 
   }
 
   //Update Path
   double lrate = 0.01;
-  for(int i = 0; i < dim.x*dim.y; i++){
+  for(int i = 0; i < dim.x*dim.y; i++)
     windpath[i] = (1.0-lrate)*windpath[i] + lrate*((track[i])?1.0:0.0);
-    if(xtrack[i])
-      windxdir[i] = 0.9*windxdir[i] + 0.1*((xtrack[i]));
-    if(ytrack[i])
-      windydir[i] = 0.9*windydir[i] + 0.1*((ytrack[i]));
-
-  }
 
 }
 
@@ -287,7 +277,7 @@ std::function<void(Model* m)> constructor = [](Model* m){
   }
 };
 
-std::function<void()> eventHandler = [](){
+std::function<void()> eventHandler = [&](){
 
   if(!Tiny::event.scroll.empty()){
 
@@ -364,19 +354,9 @@ std::function<void()> eventHandler = [](){
   }
 };
 
-std::function<glm::vec4(double, double)> dunemap = [](double t1, double t2){
-  glm::vec4 color = glm::mix(glm::vec4(0.0,0.0,0.0,1.0), glm::vec4(1.0), ease::langmuir(t1, 10.0));
-  return color;
-};
+std::function<glm::vec4(double, double)> hydromap = [](double t1, double t2){
+  glm::vec4 color = glm::mix(glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec4(1.0, 0.87, 0.73, 1.0), ease::langmuir(t2, 10.0));
 
-std::function<glm::vec4(double, double)> directionmap = [](double xt, double yt){
-  glm::vec4 color = glm::vec4(xt/2, 0.0, yt/2, 1.0);
-  //std::cout<<color.x<<" "<<color.y<<" "<<color.z<<std::endl;
-  return color;
-};
-
-std::function<glm::vec4(double, double, double, double)> combined = [](double t1, double t2, double xt, double yt){
-  glm::vec4 color = glm::mix(glm::vec4(0.0,0.0,0.0,1.0), glm::vec4(0.96, 0.48, 0.32, 1.0), ease::langmuir(t1, 10.0));
-  color = glm::mix(glm::vec4(xt/2, 0.0, yt/2, 1.0), color, ease::langmuir(t1, 10.0));
+  color = glm::mix(color, glm::vec4(0.96, 0.48, 0.32, 1.0), ease::langmuir(t1, 10.0));
   return color;
 };

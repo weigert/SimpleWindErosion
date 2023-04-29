@@ -79,7 +79,6 @@ bool init(std::string windowName, int width, int height){
     std::cout<<"Failed to launch audio interface."<<std::endl;
 		return false;
 	}
-  return true;
 }
 
 void quit(){
