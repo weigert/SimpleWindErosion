@@ -277,7 +277,7 @@ std::function<void(Model* m)> constructor = [](Model* m){
   }
 };
 
-std::function<void()> eventHandler = [&](){
+std::function<void()> eventHandler = [](){
 
   if(!Tiny::event.scroll.empty()){
 
