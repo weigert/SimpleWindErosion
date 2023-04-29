@@ -19,14 +19,21 @@ struct Wind{
   double sediment = 0.0; //Sediment Mass
 
   //Parameters
-  const float dt = 0.25;
-  const double suspension = 0.002;  //Affects transport rate
   const double abrasion = 0.01;
 
+  static int maxAge;                  // Maximum Particle Age
+  static float suspension;            //Affects transport rate
+  static float gravity;
+  static float windfriction;
 
   bool fly();
 
 };
+
+int Wind::maxAge = 100;
+float Wind::suspension = 0.001f;
+float Wind::gravity = 0.25;
+float Wind::windfriction = 0.8;
 
 bool Wind::fly(){
 
@@ -40,24 +47,58 @@ bool Wind::fly(){
   if(cell == NULL)
     return false;
 
+  if(age > maxAge){
+    cell->height += suspension*sediment;
+    World::cascade(ipos);
+    return false;
+  }
+
+  const glm::vec3 n = World::map.normal(ipos);
+
+  // Fix Height
 
   if(height < cell->height) // Raise Particle Height
     height = cell->height;
 
-  //Movement Mechanics
 
-  if(height > cell->height)   //Flying
-    speed.y -= dt*0.01;       //Gravity
-  else{ //Contact Movement
-    const glm::vec3 n = World::map.normal(ipos);
-    speed += dt*glm::cross(glm::cross(speed,n),n);
+//  if(height > cell->height)    //Flying Movement
+//    speed.y -= gravity;   //Gravity
+/*
+  else                    //Contact Movement
+//    speed = mix(speed, cross(cross(speed,n),n), windfriction);
+    speed = mix(speed, 20*2*dot(n,normalize(speed))*n - normalize(speed), windfriction);
+*/
+
+  // Manipulate Sped
+
+
+  // Surface-Contact
+  if(height <= cell->height){
+    speed += 20.0f*(2*dot(n,normalize(speed))*n - normalize(speed));
   }
 
-  speed += 0.1f*dt*(pspeed - speed);
-  pos += dt*glm::vec2(speed.x, speed.z);
-  height += dt*speed.y;
 
-  cell->discharge_track += 0.2;
+  // Momentum
+  vec2 fspeed = vec2(cell->momentumx, cell->momentumy);
+  if(length(fspeed) > 0 && length(speed) > 0){
+    float momentumTransfer = 5.0f;
+    float effTransfer = momentumTransfer*dot(normalize(fspeed), normalize(vec2(speed.x, speed.z)));
+    speed.x += quad::lodsize*effTransfer/(sediment + cell->massflow)*fspeed.x;
+    speed.z += quad::lodsize*effTransfer/(sediment + cell->massflow)*fspeed.y;
+  }
+
+  // Prevailing Speed + Gravity
+  speed += vec3(8.0f, -2.0f, 8.0f);
+
+  if(length(speed) > 0)
+    speed = (quad::lodsize*cbrt(3.0f))*normalize(speed);
+
+  // Adjust Position
+
+  pos += glm::vec2(speed.x, speed.z);
+  height += speed.y;
+
+
 
   //Mass Transport
 
@@ -65,23 +106,27 @@ bool Wind::fly(){
     return false;
   }
 
-  //Surface Contact
+
+
+
+  double diff = 0;
   if(height <= cell->height){
-
-    double force = glm::length(speed)*(cell->height - height);
-
-    cell->height -= dt*suspension*force;
-    sediment += dt*suspension*force;
-
+    diff = 0.1f;//(dot(normalize(speed), normalize(n)));
+    cell->height -= suspension*diff;
+    sediment += suspension*diff;
   }
-
-  //Flying Particle
   else{
-    sediment -= dt*suspension*sediment;
-    cell->height   += dt*suspension*sediment;
+    diff = sediment;
+    cell->height += suspension*diff;
+    sediment -= suspension*diff;
   }
+
+  cell->momentumx_track += sediment*speed.x;
+  cell->momentumy_track += sediment*speed.z;
+  cell->massflow_track += sediment;
 
   World::cascade(pos);
+  World::cascade(ipos);
 
   return true;
 

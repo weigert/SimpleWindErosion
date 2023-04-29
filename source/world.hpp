@@ -37,7 +37,7 @@ void World::erode(int cycles){
 
   for(auto& node: map.nodes)
   for(auto [cell, pos]: node.s){
-    cell.discharge_track = 0;
+    cell.massflow_track = 0;
     cell.momentumx_track = 0;
     cell.momentumy_track = 0;
   }
@@ -49,8 +49,8 @@ void World::erode(int cycles){
     //Spawn New Particle on Boundary
     glm::vec2 newpos;
     int shift = rand()%(int)(quad::tileres.x+quad::tileres.y);
-    if(shift < quad::tileres.x) newpos = glm::vec2(shift, 1);
-    else              newpos = glm::vec2(1, shift-quad::tileres.x);
+    if(shift < quad::tileres.x) newpos = glm::vec2(shift, 0);
+    else              newpos = glm::vec2(0, shift-quad::tileres.x);
 
     Wind wind(newpos);
     while(wind.fly());
@@ -60,7 +60,7 @@ void World::erode(int cycles){
   //Update Fields
   for(auto& node: map.nodes)
   for(auto [cell, pos]: node.s){
-    cell.discharge = (1.0f-lrate)*cell.discharge + lrate*cell.discharge_track;
+    cell.massflow = (1.0f-lrate)*cell.massflow + lrate*cell.massflow_track;
     cell.momentumx = (1.0f-lrate)*cell.momentumx + lrate*cell.momentumx_track;
     cell.momentumy = (1.0f-lrate)*cell.momentumy + lrate*cell.momentumy_track;
   }

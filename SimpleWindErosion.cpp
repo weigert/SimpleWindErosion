@@ -222,11 +222,11 @@ int main( int argc, char* args[] ) {
     cout<<n++<<endl;
 
     windmap.raw(image::make([&](const ivec2 p){
-      double d = World::map.discharge(p);
-      //std::cout<<d<<std::endl;
-      return vec4(glm::mix(flatColor, steepColor, d), 1);
-    }, quad::res));
-
+      auto node = world.map.get(p);
+      auto cell = node->get(p);
+      float mx = cell->momentumx;
+      float my = cell->momentumy;
+      return glm::vec4(0.5f*(1.0f+erf(2*mx)), 0.5f*(1.0f+erf(2*my)), 0.5f, 1.0);    }, quad::res));
   });
 
   return 0;

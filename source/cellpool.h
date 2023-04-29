@@ -164,7 +164,7 @@ namespace quad {
 
 const int mapscale = 80;
 
-const int tilesize = 512;
+const int tilesize = 256;
 const int tilearea = tilesize*tilesize;
 const ivec2 tileres = ivec2(tilesize);
 
@@ -207,15 +207,14 @@ vec3 _normal(T& t, ivec2 p){
 struct cell {
 
   float height;
-  float discharge;
+
+  float massflow;
   float momentumx;
   float momentumy;
 
-  float discharge_track;
+  float massflow_track;
   float momentumx_track;
   float momentumy_track;
-
-  float rootdensity;
 
 };
 
@@ -237,10 +236,6 @@ struct node {
     cell* c = get(p);
     if(c == NULL) return 0.0f;
     return c->height;
-  }
-
-  const inline float discharge(ivec2 p){
-    return erf(0.4f*get(p)->discharge);
   }
 
   const inline vec3 normal(ivec2 p){
@@ -434,12 +429,6 @@ struct map {
     node* n = get(p);
     if(n == NULL) return 0.0f;
     return n->height(p);
-  }
-
-  const inline float discharge(ivec2 p){
-    node* n = get(p);
-    if(n == NULL) return 0.0f;
-    return n->discharge(p);
   }
 
   const inline vec3 normal(ivec2 p){
