@@ -40,7 +40,6 @@ bool Wind::fly(){
   if(cell == NULL)
     return false;
 
-  const glm::vec3 n = World::map.normal(ipos);
 
   if(height < cell->height) // Raise Particle Height
     height = cell->height;
@@ -50,6 +49,7 @@ bool Wind::fly(){
   if(height > cell->height)   //Flying
     speed.y -= dt*0.01;       //Gravity
   else{ //Contact Movement
+    const glm::vec3 n = World::map.normal(ipos);
     speed += dt*glm::cross(glm::cross(speed,n),n);
   }
 
@@ -82,11 +82,6 @@ bool Wind::fly(){
   }
 
   World::cascade(pos);
-
-
-  //Particle has no speed (equilibrium movement)
-  if(length(speed) < 0.01)
-    return false;
 
   return true;
 
