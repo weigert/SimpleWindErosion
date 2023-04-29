@@ -10,9 +10,10 @@ struct Wind{
   int index;
   glm::vec2 pos;
   float height = 0.0;
-  glm::vec3 pspeed = 2.0f*glm::normalize(glm::vec3(1.0,0.0,1.0));
+  glm::vec3 pspeed = 0.5f*glm::normalize(glm::vec3(1.0,0.0,1.0));
   glm::vec3 speed = pspeed;
   double sediment = 0.0; //Sediment Mass
+  double gravity = 0.001;
 
   //Parameters
   const float dt = 0.25;
@@ -22,7 +23,7 @@ struct Wind{
   const double settling = 0.05;
 
   //Sedimenation Process
-  void fly(double* h, double* path, double* pool, bool* track, glm::ivec2 dim, double scale);
+  void fly(double* h, double* path, double* pool, bool* track, glm::ivec2 dim, double scale, double* xt, double* yt);
   void cascade(int i, double* height, double* sediment, glm::ivec2 dim);
 };
 
@@ -60,7 +61,7 @@ glm::vec3 surfaceNormal(glm::vec2 pos, double* h, double* s, glm::ivec2 dim, dou
 
 }
 
-void Wind::fly(double* h, double* w, double* s, bool* track, glm::ivec2 dim, double scale){
+void Wind::fly(double* h, double* w, double* s, bool* track, glm::ivec2 dim, double scale, double* xt, double* yt){
 
   glm::ivec2 ipos;
 
@@ -78,7 +79,7 @@ void Wind::fly(double* h, double* w, double* s, bool* track, glm::ivec2 dim, dou
 
     //Movement Mechanics
     if(height > h[ind] + s[ind]){ //Flying
-      speed.y -= dt*0.01; //Gravity
+      speed.y -= dt*gravity; //Gravity
     }
     else{ //Contact Movement
       track[ind] = true;
@@ -88,6 +89,9 @@ void Wind::fly(double* h, double* w, double* s, bool* track, glm::ivec2 dim, dou
     speed += 0.1f*dt*(pspeed - speed);
     pos += dt*glm::vec2(speed.x, speed.z);
     height += dt*speed.y;
+
+    xt[ind] = speed.x;
+    yt[ind] = speed.z;
 
     //New Position
     int nind = (int)pos.x*dim.y+(int)pos.y;

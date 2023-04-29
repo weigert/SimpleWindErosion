@@ -26,11 +26,11 @@ int main( int argc, char* args[] ) {
 
   //Setup Rendering Billboards
   Billboard shadow(2000, 2000, true); //800x800, depth only
-  Billboard image(WIDTH, HEIGHT, false); //1200x800, depth only
+  Billboard image(WIDTH, HEIGHT, false); //1200x800S
 
   //Setup 2D Images
   Billboard map(world.dim.x, world.dim.y, false); //Render target for automata
-  map.raw(image::make<double>(world.dim, world.windpath, world.sediment, hydromap));
+  map.raw(image::make<double>(world.dim, world.windpath, world.sediment, dunemap));
 
   //Setup World Model
   Model model(constructor);
@@ -41,61 +41,13 @@ int main( int argc, char* args[] ) {
 	Tiny::view.interface = [](){};
   Tiny::view.pipeline = [&](){
 
-    //Render Shadowmap
-    shadow.target();                  //Prepare Target
-    depth.use();                      //Prepare Shader
-    model.model = glm::translate(glm::mat4(1.0), -viewPos);
-    depth.setMat4("dmvp", depthProjection * depthCamera * model.model);
-    model.render(GL_TRIANGLES);       //Render Model
-
-    //We want the Model to Face the Light!
-    float rot = acos(glm::dot(glm::vec3(1, 0, 0), glm::normalize(glm::vec3(lightPos.x, 0, lightPos.z))));
-    if(lightPos.x < 0)
-      rot *= -1.0;
-    glm::mat4 faceLight = glm::rotate(glm::mat4(1.0), rot - glm::radians(45.0f), glm::vec3(0.0, 1.0, 0.0));
-
-    //Regular Image
-    image.target(skyCol);           //Prepare Target
-    shader.use();                   //Prepare Shader
+    Tiny::view.target(glm::vec3(1.0,0.0,0.0));    //Prepare Target
+    billboard.use();
     glActiveTexture(GL_TEXTURE0+0);
-    glBindTexture(GL_TEXTURE_2D, shadow.depthTexture);
-    shader.setInt("shadowMap", 0);
-    shader.setVec3("lightCol", lightCol);
-    shader.setVec3("lightPos", lightPos);
-    shader.setVec3("lookDir", lookPos-cameraPos);
-    shader.setFloat("lightStrength", lightStrength);
-    shader.setMat4("projectionCamera", projection * camera);
-    shader.setMat4("dbmvp", biasMatrix * depthProjection * depthCamera * glm::mat4(1.0f));
-    shader.setMat4("model", model.model);
-    shader.setVec3("flatColor", flatColor);
-    shader.setVec3("steepColor", steepColor);
-    shader.setFloat("steepness", steepness);
-    model.render(GL_TRIANGLES);    //Render Model
-
-    //Render to Screen
-    Tiny::view.target(color::black);    //Prepare Target
-    effect.use();                //Prepare Shader
-    glActiveTexture(GL_TEXTURE0+0);
-    glBindTexture(GL_TEXTURE_2D, image.texture);
-    effect.setInt("imageTexture", 0);
-    glActiveTexture(GL_TEXTURE0+1);
-    glBindTexture(GL_TEXTURE_2D, image.depthTexture);
-    effect.setInt("depthTexture", 1);
-    image.render();                     //Render Image
-
-    //Render Additional Information
-
-    if(viewmap){
-
-      billboard.use();
-      glActiveTexture(GL_TEXTURE0+0);
-
-      glBindTexture(GL_TEXTURE_2D, map.texture);
-      map.move(glm::vec2(0.0, 0.8), glm::vec2(0.2));
-      billboard.setMat4("model", map.model);
-      map.render();
-
-    }
+    glBindTexture(GL_TEXTURE_2D, map.texture);
+    map.move(glm::vec2(0), glm::vec2(1));
+    billboard.setMat4("model", map.model);
+    map.render();
 
   };
 
@@ -115,7 +67,8 @@ int main( int argc, char* args[] ) {
 
       //Redraw the Path and Death Image
       if(viewmap)
-        map.raw(image::make<double>(world.dim, world.windpath, world.sediment, hydromap));
+        map.raw(image::make<double>(world.dim, world.windpath, world.sediment, dunemap));
+
     }
   });
 
