@@ -1,7 +1,7 @@
 #ifndef SIMPLEWINDEROSION_MODEL
 #define SIMPLEWINDEROSION_MODEL
 
-const int WIDTH = 1200;
+const int WIDTH = 800;
 const int HEIGHT = 800;
 
 bool paused = true;

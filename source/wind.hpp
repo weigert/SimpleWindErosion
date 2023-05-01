@@ -1,36 +1,37 @@
 #ifndef SIMPLEWINDEROSION_WIND
 #define SIMPLEWINDEROSION_WIND
 
-double min(double& a, double b){
-  return (a < b)?a:b;
-}
-
 struct Wind{
 
-  Wind(glm::vec2 _pos){ pos = _pos; }
+  Wind(glm::vec2 _pos){ pos = vec3(_pos.x, -1.0f, _pos.y);
+  }
 
   int age = 0;
-  glm::vec2 pos;
+  float sediment = 0.0;     //Sediment Mass
 
-  float height = 0.0;
+  glm::vec3 pos;
   glm::vec3 speed = pspeed;
-  glm::vec3 pspeed = 2.0f*glm::normalize(glm::vec3(1.0,0.0,1.0));
+  glm::vec3 pspeed = glm::normalize(vec3(1, 0, 0));
 
-  double sediment = 0.0; //Sediment Mass
-
-  //Parameters
-  const float dt = 0.25;
-  const double suspension = 0.002;  //Affects transport rate
-  const double abrasion = 0.01;
-
+  static int maxAge;                  // Maximum Particle Age
+  static float boundarylayer;
+  static float suspension;            //Affects transport rate
+  static float gravity;
 
   bool fly();
-
 };
+
+int Wind::maxAge = 1024;
+float Wind::boundarylayer = 1.0;
+float Wind::suspension = 0.1f;
+float Wind::gravity = 0.01;
 
 bool Wind::fly(){
 
-  const glm::ivec2 ipos = pos;
+  if(age++ > maxAge)
+    return false;
+
+  const glm::ivec2 ipos = round(vec2(pos.x, pos.z));
 
   quad::node* node = World::map.get(ipos);
   if(node == NULL)
@@ -40,49 +41,62 @@ bool Wind::fly(){
   if(cell == NULL)
     return false;
 
+  if(pos.y < cell->height)
+    pos.y = cell->height;
 
-  if(height < cell->height) // Raise Particle Height
-    height = cell->height;
+  // Compute Movement
 
-  //Movement Mechanics
+  const glm::vec3 n = World::map.normal(ipos);
+  const float hfac = 1.0f-exp(-(pos.y - cell->height)/boundarylayer);
 
-  if(height > cell->height)   //Flying
-    speed.y -= dt*0.01;       //Gravity
-  else{ //Contact Movement
-    const glm::vec3 n = World::map.normal(ipos);
-    speed += dt*glm::cross(glm::cross(speed,n),n);
-  }
+  speed += 0.1f*(vec3(rand()%1001, rand()%1001, rand()%1001)-500.0f)/500.0f;
 
-  speed += 0.1f*dt*(pspeed - speed);
-  pos += dt*glm::vec2(speed.x, speed.z);
-  height += dt*speed.y;
+  speed = mix(length(speed)*cross(n, cross(normalize(speed),n)), pspeed, hfac);
 
-  cell->discharge_track += 0.2;
+  if(pos.y > cell->height)
+    speed.y -= gravity;
 
-  //Mass Transport
+  pos += speed;
 
-  if(World::map.oob(pos)){
+  cell->momentumx_track += speed.x;
+  cell->momentumy_track += speed.y;
+  cell->momentumz_track += speed.z;
+  cell->massflow_track += sediment;
+
+  // Compute the Saltation
+
+  const glm::ivec2 npos = round(vec2(pos.x, pos.z));
+
+  quad::node* nnode = World::map.get(npos);
+  if(nnode == NULL)
     return false;
-  }
 
-  //Surface Contact
-  if(height <= cell->height){
+  quad::cell* ncell = nnode->get(npos);
+  if(ncell == NULL)
+    return false;
 
-    double force = glm::length(speed)*(cell->height - height);
+  //
 
-    cell->height -= dt*suspension*force;
-    sediment += dt*suspension*force;
+  // Compute Mass Transport
 
-  }
+  const glm::vec3 nn = World::map.normal(npos);
 
-  //Flying Particle
-  else{
-    sediment -= dt*suspension*sediment;
-    cell->height   += dt*suspension*sediment;
-  }
+  float lift = 1.0f - abs(dot(normalize(speed), n));
 
-  World::cascade(pos);
+  float force = -dot(normalize(speed), n);//*sediment;
+  if(force < 0)
+    force = 0;
 
+  float capacity = (force + 0.01*lift)*(1.0f-hfac);
+
+  // Mass Transfer to Equilibrium
+
+  float diff = capacity - sediment;
+  ncell->height -= suspension*diff;
+  sediment += suspension*diff;
+
+  World::cascade(ipos);
+  World::cascade(npos);
   return true;
 
 };

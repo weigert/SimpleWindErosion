@@ -207,15 +207,16 @@ vec3 _normal(T& t, ivec2 p){
 struct cell {
 
   float height;
-  float discharge;
+
+  float massflow;
   float momentumx;
   float momentumy;
+  float momentumz;
 
-  float discharge_track;
+  float massflow_track;
   float momentumx_track;
   float momentumy_track;
-
-  float rootdensity;
+  float momentumz_track;
 
 };
 
@@ -237,10 +238,6 @@ struct node {
     cell* c = get(p);
     if(c == NULL) return 0.0f;
     return c->height;
-  }
-
-  const inline float discharge(ivec2 p){
-    return erf(0.4f*get(p)->discharge);
   }
 
   const inline vec3 normal(ivec2 p){
@@ -353,9 +350,22 @@ struct map {
 
     for(auto& node: nodes){
 
-      for(auto [cell, pos]: node.s)
+      for(auto [cell, pos]: node.s){
         cell.height = 0.0f;
+        cell.massflow = 0.0f;
+      }
 
+
+      for(auto [cell, pos]: node.s){
+        vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
+        vec2 c = vec2(node.pos+quad::tileres/ivec2(4, 2))/vec2(quad::tileres);
+        float d = length(p-c);
+        cell.height = exp(-d*d*quad::tilesize*0.2);
+      }
+
+
+
+      /*
       // Add Layers of Noise
 
       float frequency = 1.0f;
@@ -377,6 +387,9 @@ struct map {
 
       }
 
+
+
+      */
     }
 
     float min = 0.0f;
@@ -388,6 +401,7 @@ struct map {
       max = (max > cell.height)?max:cell.height;
     }
 
+    /*
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
     noise.SetFractalOctaves(1.0f);
@@ -395,17 +409,18 @@ struct map {
     noise.SetFractalGain(0.5f);
     noise.SetFrequency(1.0);
 
+*/
     for(auto& node: nodes)
     for(auto [cell, pos]: node.s){
 
-      vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
+    //  vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
     //  vec2 cp = p+;
-      float scale = noise.GetNoise(p.x, p.y, (float)(SEED%10000+1));
-      float d = 0.1+0.5f*(1.0f+erf(2*scale));
+    //  float scale = noise.GetNoise(p.x, p.y, (float)(SEED%10000+1));
+    //  float d = 0.1+0.5f*(1.0f+erf(2*scale));
 
     // /  float cd = sqrt(dot(cp, cp)/(0.07*size*size));
       //cell.height = d;
-      cell.height = ((cell.height - min)/(max - min));
+      cell.height = 0.5*((cell.height - min)/(max - min));
     }
 
   }
@@ -434,12 +449,6 @@ struct map {
     node* n = get(p);
     if(n == NULL) return 0.0f;
     return n->height(p);
-  }
-
-  const inline float discharge(ivec2 p){
-    node* n = get(p);
-    if(n == NULL) return 0.0f;
-    return n->discharge(p);
   }
 
   const inline vec3 normal(ivec2 p){
