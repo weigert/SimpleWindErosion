@@ -29,7 +29,7 @@ quad::map World::map;
 
 float World::lrate = 0.1f;
 float World::maxdiff = 0.005;
-float World::settling = 0.05;
+float World::settling = 0.5;
 
 #include "wind.hpp"
 
@@ -49,7 +49,7 @@ void World::erode(int cycles){
 
     //Spawn New Particle on Boundary
 
-    glm::vec2 newpos = node.pos + ivec2(rand()%quad::tileres.x, rand()%quad::tileres.y);
+    glm::vec2 newpos = node.pos + ivec2(0, rand()%quad::tileres.y);
     newpos += vec2(rand()%1000, rand()%1000)/1000.0f;
 
 /*
@@ -60,6 +60,8 @@ void World::erode(int cycles){
 */
     Wind wind(newpos);
     while(wind.fly());
+
+    //Wind::time += 0.001f;
 
   }
 
