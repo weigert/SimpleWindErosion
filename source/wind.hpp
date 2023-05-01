@@ -24,7 +24,7 @@ struct Wind{
   glm::vec3 speed = pspeed;
   glm::vec3 pspeed = glm::normalize(glm::vec3(1.0,0.0,1.0));
 
-  float sediment = 0.5;     //Sediment Mass
+  float sediment = 0.0;     //Sediment Mass
 
   //Parameters
   const float abrasion = 0.01;
@@ -39,7 +39,7 @@ struct Wind{
 };
 
 int Wind::maxAge = 1024;
-float Wind::suspension = 0.001f;
+float Wind::suspension = 0.005f;
 float Wind::gravity = 0.1;
 float Wind::windfriction = 1.0;
 
@@ -60,25 +60,19 @@ bool Wind::fly(){
 
   const glm::vec3 n = World::map.normal(ipos);
 
-  if(pos.y <= cell->height){
-    if(dot(n, speed) < 0){
-      speed = mix(speed, cross(n, cross(speed,n)), 1.0);
-    }
+  if(pos.y <= cell->height)
     pos.y = cell->height;
-  }
 
-  float hfac = exp(-0.01f*(pos.y - cell->height));
+  float hfac = exp(-1.0f*(pos.y - cell->height));
+  vec3 surfacespeed = cross(n, cross(speed,n));
 
-//  vec3 ground_speed = vec3(cell->momentumx, cell->momentumy, cell->momentumz);
-
-//  vec3 fspeed = mix(pspeed, ground_speed, hfac);
-  speed = mix(pspeed, speed, hfac);
+  speed = mix(pspeed, surfacespeed, hfac);
 
 
   //Movement Mechanics
 
-  if(pos.y > cell->height)      //Flying Movement
-    speed.y -= 0.25*sediment;   //Gravity
+  //if(pos.y > cell->height)      //Flying Movement
+  //  speed.y -= 0.5;   //Gravity
 //  else                    //Contact Movement
 
 //  speed = mix(speed, pspeed, 0.2);
@@ -87,9 +81,9 @@ bool Wind::fly(){
   speed = normalize(speed);
   pos += sqrt(2.0f)*speed;
 
-  cell->momentumx_track += sediment*speed.x;
-  cell->momentumy_track += sediment*speed.y;
-  cell->momentumz_track += sediment*speed.z;
+  cell->momentumx_track += speed.x;
+  cell->momentumy_track += speed.y;
+  cell->momentumz_track += speed.z;
   cell->massflow_track += sediment;
 
   }
@@ -101,10 +95,8 @@ bool Wind::fly(){
 
 */
 
-  // Find the Equilibrium amount of Sediment
-
   // Next Cell
-
+/*
   ivec2 npos = vec2(pos.x, pos.z);
 
   node = World::map.get(npos);
@@ -114,31 +106,26 @@ bool Wind::fly(){
   cell = node->get(npos);
   if(cell == NULL)
     return false;
+*/
+  // Find the Equilibrium amount of Sediment
 
+  //if(pos.y <= cell->height)
+  //  pos.y = cell->height;
 
   // Erosion Calculation
 
-  if(pos.y <= cell->height){
+  float force = -dot(speed, n);
+  if(force < 0) force = 0;
+  float capacity = hfac*force;
 
-    double force = length(speed)*(cell->height-pos.y)*(1.0f-sediment);
-    cell->height -= suspension*force;
-    sediment += (suspension*force);
-
-    World::cascade(ipos);
-
-    pos.y = cell->height;
-
-  }
-
-  else {
-
-    cell->height += suspension*sediment;
-    sediment -= suspension*sediment;
+  float diff = capacity - sediment;
+  cell->height -= suspension*diff;;
+  sediment += suspension*diff;
 
 
-  }
 
-  World::cascade(npos);
+  World::cascade(ipos);
+  //World::cascade(npos);
 
 
       /*

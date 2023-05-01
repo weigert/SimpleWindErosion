@@ -50,6 +50,8 @@ void World::erode(int cycles){
     //Spawn New Particle on Boundary
 
     glm::vec2 newpos = node.pos + ivec2(rand()%quad::tileres.x, rand()%quad::tileres.y);
+    newpos += vec2(rand()%1000, rand()%1000)/1000.0f;
+
 /*
     glm::vec2 newpos;
     int shift = rand()%(int)(quad::tileres.x+quad::tileres.y);

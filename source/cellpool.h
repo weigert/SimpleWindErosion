@@ -359,7 +359,7 @@ struct map {
         vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
         vec2 c = vec2(node.pos+quad::tileres/2)/vec2(quad::tileres);
         float d = length(p-c);
-        cell.height = exp(-d*d*quad::tilesize);
+        cell.height = exp(-d*d*quad::tilesize*0.2);
       }
 
       /*
@@ -417,7 +417,7 @@ struct map {
 
     // /  float cd = sqrt(dot(cp, cp)/(0.07*size*size));
       //cell.height = d;
-      cell.height = 0.25*((cell.height - min)/(max - min));
+      cell.height = 0.5*((cell.height - min)/(max - min));
     }
 
   }
