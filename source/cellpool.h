@@ -164,7 +164,7 @@ namespace quad {
 
 const int mapscale = 80;
 
-const int tilesize = 256;
+const int tilesize = 512;
 const int tilearea = tilesize*tilesize;
 const ivec2 tileres = ivec2(tilesize);
 
@@ -420,7 +420,7 @@ struct map {
 
     // /  float cd = sqrt(dot(cp, cp)/(0.07*size*size));
       //cell.height = d;
-      cell.height = 0.0*((cell.height - min)/(max - min));
+      cell.height = 0.5*((cell.height - min)/(max - min));
     }
 
   }

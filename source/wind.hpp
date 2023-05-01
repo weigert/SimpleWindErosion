@@ -4,23 +4,19 @@
 struct Wind{
 
   Wind(glm::vec2 _pos){ pos = vec3(_pos.x, -1.0f, _pos.y);
-    time = 0.0f;
   }
 
   int age = 0;
+  float sediment = 0.0;     //Sediment Mass
 
   glm::vec3 pos;
   glm::vec3 speed = pspeed;
-  glm::vec3 pspeed = glm::normalize(glm::vec3(cos(time),0.0,sin(time)));
-
-  float sediment = 0.0;     //Sediment Mass
+  glm::vec3 pspeed = glm::normalize(vec3(1, 0, 0));
 
   static int maxAge;                  // Maximum Particle Age
+  static float boundarylayer;
   static float suspension;            //Affects transport rate
   static float gravity;
-  static float time;
-
-  static float boundarylayer;
 
   bool fly();
 };
@@ -28,10 +24,7 @@ struct Wind{
 int Wind::maxAge = 1024;
 float Wind::boundarylayer = 1.0;
 float Wind::suspension = 0.1f;
-
-
-float Wind::gravity = 0.1;
-float Wind::time = 0.0f;
+float Wind::gravity = 0.01;
 
 bool Wind::fly(){
 
@@ -58,15 +51,12 @@ bool Wind::fly(){
 
   speed += 0.1f*(vec3(rand()%1001, rand()%1001, rand()%1001)-500.0f)/500.0f;
 
-  speed = mix(cross(n, cross(speed,n)), pspeed, hfac);
+  speed = mix(length(speed)*cross(n, cross(normalize(speed),n)), pspeed, hfac);
 
-  //if(pos.y > cell->height)
-  //  speed.y -= 0.05;
+  if(pos.y > cell->height)
+    speed.y -= gravity;
 
-  //if(length(speed) > 0)
-  //  speed = normalize(speed);
-
-  pos += sqrt(2.0f)*speed;
+  pos += speed;
 
   cell->momentumx_track += speed.x;
   cell->momentumy_track += speed.y;
@@ -89,37 +79,24 @@ bool Wind::fly(){
 
   // Compute Mass Transport
 
-  // Lift-Capacity
+  const glm::vec3 nn = World::map.normal(npos);
 
   float lift = 1.0f - abs(dot(normalize(speed), n));
 
-
-  // Compute Shearing Capacity
-
-  float force = dot(normalize(speed), n)*sediment;
-
-  if(force > 0)
-    force = 0;
+  float force = -dot(normalize(speed), n);//*sediment;
   if(force < 0)
-    force *= -1;
+    force = 0;
 
-  float capacity = force + 0.05*lift;
+  float capacity = (force + 0.01*lift)*(1.0f-hfac);
 
-  // ...
+  // Mass Transfer to Equilibrium
 
-  float diff = capacity*(1.0f-hfac) - sediment;
+  float diff = capacity - sediment;
   ncell->height -= suspension*diff;
   sediment += suspension*diff;
 
   World::cascade(ipos);
   World::cascade(npos);
-  World::cascade(ipos);
-  World::cascade(npos);
-  World::cascade(ipos);
-  World::cascade(npos);
-  World::cascade(ipos);
-  World::cascade(npos);
-
   return true;
 
 };
