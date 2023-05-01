@@ -1,19 +1,6 @@
 #ifndef SIMPLEWINDEROSION_WIND
 #define SIMPLEWINDEROSION_WIND
 
-float min(float& a, float b){
-  return (a < b)?a:b;
-}
-
-/*
-  Modelling Saltation:
-
-  1. Particles are Lifted by Wind
-  2. Since we normalize everything to the same velicoty,
-    I think we can just say "relative to the prevailing wind speed"
-  3.
-*/
-
 struct Wind{
 
   Wind(glm::vec2 _pos){ pos = vec3(_pos.x, -1.0f, _pos.y);
@@ -28,22 +15,22 @@ struct Wind{
 
   float sediment = 0.0;     //Sediment Mass
 
-  //Parameters
-  const float abrasion = 0.01;
-
   static int maxAge;                  // Maximum Particle Age
   static float suspension;            //Affects transport rate
   static float gravity;
-  static float windfriction;
   static float time;
+
+  static float boundarylayer;
 
   bool fly();
 };
 
 int Wind::maxAge = 1024;
+float Wind::boundarylayer = 1.0;
 float Wind::suspension = 0.1f;
+
+
 float Wind::gravity = 0.1;
-float Wind::windfriction = 1.0;
 float Wind::time = 0.0f;
 
 bool Wind::fly(){
@@ -61,28 +48,23 @@ bool Wind::fly(){
   if(cell == NULL)
     return false;
 
-  // Correct Height, Compute Factor f. Distance to Surface
-
   if(pos.y < cell->height)
     pos.y = cell->height;
 
-  float hfac = 1.0f-exp(-1.0f*(pos.y - cell->height));
-
-  // Normal Vector
+  // Compute Movement
 
   const glm::vec3 n = World::map.normal(ipos);
+  const float hfac = 1.0f-exp(-(pos.y - cell->height)/boundarylayer);
 
-  // Compute Velocity
-
-  speed += 0.5f*(vec3(rand()%1001, rand()%1001, rand()%1001)-vec3(500))/500.0f;
+  speed += 0.1f*(vec3(rand()%1001, rand()%1001, rand()%1001)-500.0f)/500.0f;
 
   speed = mix(cross(n, cross(speed,n)), pspeed, hfac);
 
-  if(pos.y > cell->height)
-    speed.y -= 0.05;
+  //if(pos.y > cell->height)
+  //  speed.y -= 0.05;
 
-  if(length(speed) > 0)
-    speed = normalize(speed);
+  //if(length(speed) > 0)
+  //  speed = normalize(speed);
 
   pos += sqrt(2.0f)*speed;
 
@@ -91,51 +73,44 @@ bool Wind::fly(){
   cell->momentumz_track += speed.z;
   cell->massflow_track += sediment;
 
-
-
-
-
   // Compute the Saltation
 
-  ivec2 npos = vec2(pos.x, pos.z);
+  const glm::ivec2 npos = round(vec2(pos.x, pos.z));
 
-  node = World::map.get(npos);
-  if(node == NULL)
+  quad::node* nnode = World::map.get(npos);
+  if(nnode == NULL)
     return false;
 
-  cell = node->get(npos);
-  if(cell == NULL)
+  quad::cell* ncell = nnode->get(npos);
+  if(ncell == NULL)
     return false;
 
+  //
 
+  // Compute Mass Transport
 
+  // Lift-Capacity
 
-
-
-
-
-
-
+  float lift = 1.0f - abs(dot(normalize(speed), n));
 
 
   // Compute Shearing Capacity
 
-  float force = dot(speed, n);
+  float force = dot(normalize(speed), n)*sediment;
 
   if(force > 0)
     force = 0;
   if(force < 0)
     force *= -1;
 
-  float capacity = force*(1.0f-hfac);
+  float capacity = force + 0.05*lift;
 
   // ...
 
-  float diff = capacity - sediment;
-  cell->height -= suspension*diff;
+  float diff = capacity*(1.0f-hfac) - sediment;
+  ncell->height -= suspension*diff;
   sediment += suspension*diff;
 
-  World::cascade(npos);
   World::cascade(ipos);
   World::cascade(npos);
   World::cascade(ipos);
@@ -143,6 +118,7 @@ bool Wind::fly(){
   World::cascade(ipos);
   World::cascade(npos);
   World::cascade(ipos);
+  World::cascade(npos);
 
   return true;
 
