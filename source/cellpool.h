@@ -211,10 +211,12 @@ struct cell {
   float massflow;
   float momentumx;
   float momentumy;
+  float momentumz;
 
   float massflow_track;
   float momentumx_track;
   float momentumy_track;
+  float momentumz_track;
 
 };
 
@@ -348,8 +350,19 @@ struct map {
 
     for(auto& node: nodes){
 
-      for(auto [cell, pos]: node.s)
+      for(auto [cell, pos]: node.s){
         cell.height = 0.0f;
+        cell.massflow = 0.0f;
+      }
+
+      for(auto [cell, pos]: node.s){
+        vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
+        vec2 c = vec2(node.pos+quad::tileres/2)/vec2(quad::tileres);
+        float d = length(p-c);
+        cell.height = exp(-d*d*quad::tilesize);
+      }
+
+      /*
 
       // Add Layers of Noise
 
@@ -372,6 +385,8 @@ struct map {
 
       }
 
+      */
+
     }
 
     float min = 0.0f;
@@ -383,6 +398,7 @@ struct map {
       max = (max > cell.height)?max:cell.height;
     }
 
+    /*
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
     noise.SetFractalOctaves(1.0f);
@@ -390,17 +406,18 @@ struct map {
     noise.SetFractalGain(0.5f);
     noise.SetFrequency(1.0);
 
+*/
     for(auto& node: nodes)
     for(auto [cell, pos]: node.s){
 
-      vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
+    //  vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
     //  vec2 cp = p+;
-      float scale = noise.GetNoise(p.x, p.y, (float)(SEED%10000+1));
-      float d = 0.1+0.5f*(1.0f+erf(2*scale));
+    //  float scale = noise.GetNoise(p.x, p.y, (float)(SEED%10000+1));
+    //  float d = 0.1+0.5f*(1.0f+erf(2*scale));
 
     // /  float cd = sqrt(dot(cp, cp)/(0.07*size*size));
       //cell.height = d;
-      cell.height = ((cell.height - min)/(max - min));
+      cell.height = 0.25*((cell.height - min)/(max - min));
     }
 
   }

@@ -226,7 +226,8 @@ int main( int argc, char* args[] ) {
       auto cell = node->get(p);
       float mx = cell->momentumx;
       float my = cell->momentumy;
-      return glm::vec4(0.5f*(1.0f+erf(2*mx)), 0.5f*(1.0f+erf(2*my)), 0.5f, 1.0);    }, quad::res));
+      float mz = cell->momentumz;
+      return glm::vec4(0.5f*(1.0f+erf(2*mx)), 0.5f*(1.0f+erf(2*my)), 0.5f*(1.0f+erf(2*mz)), 1.0);    }, quad::res));
   });
 
   return 0;

@@ -40,6 +40,7 @@ void World::erode(int cycles){
     cell.massflow_track = 0;
     cell.momentumx_track = 0;
     cell.momentumy_track = 0;
+    cell.momentumz_track = 0;
   }
 
   //Do a series of iterations!
@@ -47,11 +48,14 @@ void World::erode(int cycles){
   for(int i = 0; i < cycles; i++){
 
     //Spawn New Particle on Boundary
+
+    glm::vec2 newpos = node.pos + ivec2(rand()%quad::tileres.x, rand()%quad::tileres.y);
+/*
     glm::vec2 newpos;
     int shift = rand()%(int)(quad::tileres.x+quad::tileres.y);
     if(shift < quad::tileres.x) newpos = glm::vec2(shift, 0);
     else              newpos = glm::vec2(0, shift-quad::tileres.x);
-
+*/
     Wind wind(newpos);
     while(wind.fly());
 
@@ -63,6 +67,7 @@ void World::erode(int cycles){
     cell.massflow = (1.0f-lrate)*cell.massflow + lrate*cell.massflow_track;
     cell.momentumx = (1.0f-lrate)*cell.momentumx + lrate*cell.momentumx_track;
     cell.momentumy = (1.0f-lrate)*cell.momentumy + lrate*cell.momentumy_track;
+    cell.momentumz = (1.0f-lrate)*cell.momentumz + lrate*cell.momentumz_track;
   }
 }
 
@@ -120,11 +125,7 @@ void World::cascade(vec2 pos){
 
       //The Amount of Excess Difference!
     float excess = 0.0f;
-    if(sn[i].h > 0.1){
-      excess = abs(diff) - sn[i].d*maxdiff * quad::lodsize;
-    } else {
-      excess = abs(diff);
-    }
+    excess = abs(diff) - sn[i].d*maxdiff * quad::lodsize;
 
     if(excess <= 0)  //No Excess
       continue;
