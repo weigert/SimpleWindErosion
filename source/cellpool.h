@@ -164,7 +164,7 @@ namespace quad {
 
 const int mapscale = 80;
 
-const int tilesize = 512;
+const int tilesize = 256;
 const int tilearea = tilesize*tilesize;
 const ivec2 tileres = ivec2(tilesize);
 
@@ -355,17 +355,17 @@ struct map {
         cell.massflow = 0.0f;
       }
 
-      /*
+
       for(auto [cell, pos]: node.s){
         vec2 p = vec2(node.pos+lodsize*pos)/vec2(quad::tileres);
         vec2 c = vec2(node.pos+quad::tileres/2)/vec2(quad::tileres);
         float d = length(p-c);
         cell.height = exp(-d*d*quad::tilesize*0.2);
       }
-      */
 
 
 
+      /*
       // Add Layers of Noise
 
       float frequency = 1.0f;
@@ -389,6 +389,7 @@ struct map {
 
 
 
+      */
     }
 
     float min = 0.0f;
@@ -419,7 +420,7 @@ struct map {
 
     // /  float cd = sqrt(dot(cp, cp)/(0.07*size*size));
       //cell.height = d;
-      cell.height = ((cell.height - min)/(max - min));
+      cell.height = 0.5*((cell.height - min)/(max - min));
     }
 
   }

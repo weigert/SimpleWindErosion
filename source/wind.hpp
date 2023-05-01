@@ -26,7 +26,7 @@ struct Wind{
   glm::vec3 speed = pspeed;
   glm::vec3 pspeed = glm::normalize(glm::vec3(cos(time),0.0,sin(time)));
 
-  float sediment = 0.01;     //Sediment Mass
+  float sediment = 0.0;     //Sediment Mass
 
   //Parameters
   const float abrasion = 0.01;
@@ -63,12 +63,10 @@ bool Wind::fly(){
 
   // Correct Height, Compute Factor f. Distance to Surface
 
-  if(pos.y < cell->height){
+  if(pos.y < cell->height)
     pos.y = cell->height;
-  //  speed.y = 0;
-  }
 
-  float hfac = 1.0f-exp(-0.5f*(pos.y - cell->height));
+  float hfac = 1.0f-exp(-1.0f*(pos.y - cell->height));
 
   // Normal Vector
 
@@ -76,9 +74,9 @@ bool Wind::fly(){
 
   // Compute Velocity
 
-  speed = mix(cross(n, cross(speed,n)), pspeed, hfac);
+  speed += 0.5f*(vec3(rand()%1001, rand()%1001, rand()%1001)-vec3(500))/500.0f;
 
-  speed += 0.1f*(vec3(rand()%1001, rand()%1001, rand()%1001)-vec3(500))/500.0f;
+  speed = mix(cross(n, cross(speed,n)), pspeed, hfac);
 
   if(pos.y > cell->height)
     speed.y -= 0.05;
@@ -143,30 +141,8 @@ bool Wind::fly(){
   World::cascade(ipos);
   World::cascade(npos);
   World::cascade(ipos);
-      /*
-        Basically what needs to happen is:
-        If momentum against a point is high,
-        this increases the shear-stress.
-
-        Higher shear-stress means faster rate of sediment
-        uptake or rather high maximum sediment value.
-
-        So we have an equilibrium amount of Sediment,
-        determined by the shear-stress, determined by the
-        collisions of particles with the
-
-        Then when there is no collision the shear-stress is low
-        and thus the particles start losing capacity
-        and so on
-
-        we are accelerated by the momentum
-        the total shear-stress is given by the total momentum though
-        and is like an activation function
-        after some critical amount of momentum???
-
-        We also have drag working on the particles
-        They are also being accelerated by the wind
-      */
+  World::cascade(npos);
+  World::cascade(ipos);
 
   return true;
 
