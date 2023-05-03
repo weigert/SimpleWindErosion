@@ -21,7 +21,7 @@ struct Wind{
 };
 
 int Wind::maxAge = 512;
-float Wind::boundarylayer = 1.0f;
+float Wind::boundarylayer = 2.0f;
 float Wind::suspension = 0.05f;
 float Wind::gravity = 0.1;
 
