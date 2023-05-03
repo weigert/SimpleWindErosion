@@ -27,7 +27,7 @@ unsigned int World::SEED = 0;
 
 quad::map World::map;
 
-float World::lrate = 0.1f;
+float World::lrate = 0.05f;
 float World::maxdiff = 0.005;
 float World::settling = 1.0;
 
