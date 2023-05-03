@@ -20,15 +20,12 @@ struct Wind{
   bool fly();
 };
 
-int Wind::maxAge = 64;
+int Wind::maxAge = 512;
 float Wind::boundarylayer = 1.0f;
 float Wind::suspension = 0.05f;
 float Wind::gravity = 0.1;
 
 bool Wind::fly(){
-
-  if(age++ > maxAge)
-    return false;
 
   const glm::ivec2 ipos = round(vec2(pos.x, pos.z));
 
@@ -42,16 +39,21 @@ bool Wind::fly(){
 
   const glm::vec3 n = World::map.normal(ipos);
 
-  if(pos.y < cell->height)
+  if(age == 0 || pos.y < cell->height)
     pos.y = cell->height;
+
+  if(age++ > maxAge)
+    return false;
 
   // Compute Movement
 
-  const float hfac = exp(-(pos.y - cell->height)/boundarylayer);
+  float hfac = exp(-(pos.y - cell->height)/boundarylayer);
+  if(hfac < 0)
+    hfac = 0;
 
   // Apply Base Prevailign Wind-Speed w. Shadowing
 
-  float shadow = dot(pspeed, n);
+  float shadow = dot(normalize(pspeed), n);
   if(shadow < 0)
     shadow = 0;
   shadow = 1.0f-shadow;
@@ -76,13 +78,13 @@ bool Wind::fly(){
 
   speed += 0.9f*( shadow*mix(pspeed, rspeed, shadow*hfac) - speed);
 
-  // Speed is damped by drag
-
-  speed *= (1.0f - 0.2*sediment);
-
   // Turbulence
 
   speed += 0.1f*hfac*collision*(vec3(rand()%1001, rand()%1001, rand()%1001)-500.0f)/500.0f;
+
+  // Speed is damped by drag
+
+  speed *= (1.0f - 0.3*sediment);
 
   // Move
 
@@ -96,9 +98,12 @@ bool Wind::fly(){
   // Compute Mass Transport
 
   float force = -dot(normalize(speed), n)*length(speed);
-  float capacity = force*hfac;
-  //if(capacity < 0)
-  //  capacity = 0;
+  if(force < 0)
+    force = 0;
+
+  float lift = (1.0f-collision)*length(speed);
+
+  float capacity = force*hfac + 0.02f*lift*hfac;
 
   // Mass Transfer to Equilibrium
 

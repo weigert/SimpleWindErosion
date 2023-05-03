@@ -27,7 +27,7 @@ unsigned int World::SEED = 0;
 
 quad::map World::map;
 
-float World::lrate = 0.05f;
+float World::lrate = 0.5f;
 float World::maxdiff = 0.005;
 float World::settling = 1.0;
 
@@ -116,7 +116,7 @@ void World::cascade(vec2 pos){
   //Iterate over all sorted Neighbors
 
   sort(std::begin(sn), std::begin(sn) + num, [&](const Point& a, const Point& b){
-    return a.h < b.h;
+    return a.h > b.h;
   });
 
   for (int i = 0; i < num; ++i) {
