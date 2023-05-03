@@ -3,14 +3,13 @@
 
 struct Wind{
 
-  Wind(glm::vec2 _pos){ pos = vec3(_pos.x, -1.0f, _pos.y);
-  }
+  Wind(glm::vec2 _pos){ pos = vec3(_pos.x, 0.0f, _pos.y); }
 
   int age = 0;
   float sediment = 0.0;     //Sediment Mass
 
   glm::vec3 pos;
-  glm::vec3 speed = pspeed;
+  glm::vec3 speed = vec3(0);
   glm::vec3 pspeed = glm::normalize(vec3(1, 0, 0));
 
   static int maxAge;                  // Maximum Particle Age
@@ -21,15 +20,12 @@ struct Wind{
   bool fly();
 };
 
-int Wind::maxAge = 1024;
-float Wind::boundarylayer = 1.0;
-float Wind::suspension = 0.1f;
-float Wind::gravity = 0.01;
+int Wind::maxAge = 512;
+float Wind::boundarylayer = 2.0f;
+float Wind::suspension = 0.05f;
+float Wind::gravity = 0.1;
 
 bool Wind::fly(){
-
-  if(age++ > maxAge)
-    return false;
 
   const glm::ivec2 ipos = round(vec2(pos.x, pos.z));
 
@@ -41,20 +37,56 @@ bool Wind::fly(){
   if(cell == NULL)
     return false;
 
-  if(pos.y < cell->height)
+  const glm::vec3 n = World::map.normal(ipos);
+
+  if(age == 0 || pos.y < cell->height)
     pos.y = cell->height;
+
+  if(age++ > maxAge)
+    return false;
 
   // Compute Movement
 
-  const glm::vec3 n = World::map.normal(ipos);
-  const float hfac = 1.0f-exp(-(pos.y - cell->height)/boundarylayer);
+  float hfac = exp(-(pos.y - cell->height)/boundarylayer);
+  if(hfac < 0)
+    hfac = 0;
 
-  speed += 0.1f*(vec3(rand()%1001, rand()%1001, rand()%1001)-500.0f)/500.0f;
+  // Apply Base Prevailign Wind-Speed w. Shadowing
 
-  speed = mix(length(speed)*cross(n, cross(normalize(speed),n)), pspeed, hfac);
+  float shadow = dot(normalize(pspeed), n);
+  if(shadow < 0)
+    shadow = 0;
+  shadow = 1.0f-shadow;
+
+  speed += 0.05f*((0.1f+0.9f*shadow)*pspeed - speed);
+
+  // Apply Gravity
 
   if(pos.y > cell->height)
-    speed.y -= gravity;
+    speed.y -= gravity*sediment;
+
+  // Compute Collision Factor
+
+  float collision = -dot(normalize(speed), n);
+  if(collision < 0) collision = 0;
+
+  // Compute Redirect Velocity
+
+  vec3 rspeed = cross(n, cross((1.0f-collision)*speed, n));
+
+  // Speed is accelerated by terrain features
+
+  speed += 0.9f*( shadow*mix(pspeed, rspeed, shadow*hfac) - speed);
+
+  // Turbulence
+
+  speed += 0.1f*hfac*collision*(vec3(rand()%1001, rand()%1001, rand()%1001)-500.0f)/500.0f;
+
+  // Speed is damped by drag
+
+  speed *= (1.0f - 0.3*sediment);
+
+  // Move
 
   pos += speed;
 
@@ -63,40 +95,23 @@ bool Wind::fly(){
   cell->momentumz_track += speed.z;
   cell->massflow_track += sediment;
 
-  // Compute the Saltation
-
-  const glm::ivec2 npos = round(vec2(pos.x, pos.z));
-
-  quad::node* nnode = World::map.get(npos);
-  if(nnode == NULL)
-    return false;
-
-  quad::cell* ncell = nnode->get(npos);
-  if(ncell == NULL)
-    return false;
-
-  //
-
   // Compute Mass Transport
 
-  const glm::vec3 nn = World::map.normal(npos);
-
-  float lift = 1.0f - abs(dot(normalize(speed), n));
-
-  float force = -dot(normalize(speed), n);//*sediment;
+  float force = -dot(normalize(speed), n)*length(speed);
   if(force < 0)
     force = 0;
 
-  float capacity = (force + 0.01*lift)*(1.0f-hfac);
+  float lift = (1.0f-collision)*length(speed);
+
+  float capacity = force*hfac + 0.02f*lift*hfac;
 
   // Mass Transfer to Equilibrium
 
   float diff = capacity - sediment;
-  ncell->height -= suspension*diff;
+  cell->height -= suspension*diff;
   sediment += suspension*diff;
 
   World::cascade(ipos);
-  World::cascade(npos);
   return true;
 
 };

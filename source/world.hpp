@@ -116,7 +116,7 @@ void World::cascade(vec2 pos){
   //Iterate over all sorted Neighbors
 
   sort(std::begin(sn), std::begin(sn) + num, [&](const Point& a, const Point& b){
-    return a.h < b.h;
+    return a.h > b.h;
   });
 
   for (int i = 0; i < num; ++i) {

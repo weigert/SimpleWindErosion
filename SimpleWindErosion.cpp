@@ -214,7 +214,7 @@ int main( int argc, char* args[] ) {
     if(paused)
       return;
 
-    world.erode(2*quad::tilesize);
+    world.erode(8*quad::tilesize);
 
     for(auto& node: world.map.nodes){
       updatenode(vertexpool, node);
